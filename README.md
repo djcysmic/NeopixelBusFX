@@ -1,6 +1,3 @@
-# NeopixelBusFX
-NeopixelBusFX plugin for ESPEasy
-
 List of commands:
 
 neopixel off [fadetime] [delay]
@@ -12,33 +9,33 @@ neopixel on [fadetime] [delay]
 neopixel dim [dimvalue]
 	dimvalue 0-255
 
-neopixel line <startpixel> <endpixel> <color>
+neopixel line startpixel endpixel color
 
-neopixel one <pixel> <color>
+neopixel one pixel color
 
-neopixel all <color> [fadetime] [delay]
-neopixel rgb <color> [fadetime] [delay]
-neopixel fade <color> [fadetime] [delay]
+neopixel all color [fadetime] [delay]
+neopixel rgb color [fadetime] [delay]
+neopixel fade color [fadetime] [delay]
 
-neopixel colorfade <startcolor> <endcolor> [startpixel] [endpixel]
+neopixel colorfade startcolor endcolor [startpixel] [endpixel]
 
 neopixel rainbow [speed]
 
-neopixel kitt <color> [speed]
+neopixel kitt color [speed]
 
-neopixel comet <color> [speed]
+neopixel comet color [speed]
 
-neopixel theatre <color> [backgroundcolor] [count] [speed]
+neopixel theatre color [backgroundcolor] [count] [speed]
 
-neopixel scan <color> [backgroundcolor] [speed]
+neopixel scan color [backgroundcolor] [speed]
 
-neopixel dualscan <color> [backgroundcolor] [speed]
+neopixel dualscan color [backgroundcolor] [speed]
 
-neopixel twinkle <color> [backgroundcolor] [speed]
+neopixel twinkle color [backgroundcolor] [speed]
 
-neopixel twinklefade <color> [count] [speed]
+neopixel twinklefade color [count] [speed]
 
-neopixel sparkle <color> [backgroundcolor] [speed]
+neopixel sparkle color [backgroundcolor] [speed]
 
 neopixel fire [fps] [brightness] [cooling] [brightness]
 
@@ -47,7 +44,7 @@ neopixel stop
 
 Use:
 
-<needed>:
+needed:
 color,backgroundcolor -> targetcolor in hex format e.g. ff0000 for red
 
 [optional]:
@@ -63,4 +60,3 @@ https://github.com/Makuna/NeoPixelBus
 https://github.com/ddtlabs/ESPEasy-Plugin-Lights
 
 Thank you to all developers
-*/
