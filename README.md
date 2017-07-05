@@ -1,51 +1,52 @@
-List of commands:
+<i><b>List of commands:</b></i>
 
-neopixel off [fadetime] [delay]
+neopixelfx off [fadetime] [delay]
 	switches the stripe off
 
-neopixel on [fadetime] [delay]
+neopixelfx on [fadetime] [delay]
 	restores last state of the stripe
 
-neopixel dim [dimvalue]
+neopixelfx dim <i>dimvalue</i>
+	dim stripe overall
 	dimvalue 0-255
 
-neopixel line startpixel endpixel color
+neopixelfx line <i>startpixel endpixel color</i>
 
-neopixel one pixel color
+neopixelfx one <i>pixel color</i>
 
-neopixel all color [fadetime] [delay]
-neopixel rgb color [fadetime] [delay]
-neopixel fade color [fadetime] [delay]
+neopixelfx all <i>color</i> [fadetime] [delay]
+neopixelfx rgb <i>color</i> [fadetime] [delay]
+neopixelfx fade <i>color</i> [fadetime] [delay]
 
-neopixel colorfade startcolor endcolor [startpixel] [endpixel]
+neopixelfx colorfade <i>startcolor endcolor</i> [startpixel] [endpixel]
 
-neopixel rainbow [speed]
+neopixelfx rainbow [speed]
 
-neopixel kitt color [speed]
+neopixelfx kitt <i>color</i> [speed]
 
-neopixel comet color [speed]
+neopixelfx comet <i>color</i> [speed]
 
-neopixel theatre color [backgroundcolor] [count] [speed]
+neopixelfx theatre <i>color</i> [backgroundcolor] [count] [speed]
 
-neopixel scan color [backgroundcolor] [speed]
+neopixelfx scan <i>color</i> [backgroundcolor] [speed]
 
-neopixel dualscan color [backgroundcolor] [speed]
+neopixelfx dualscan <i>color</i> [backgroundcolor] [speed]
 
-neopixel twinkle color [backgroundcolor] [speed]
+neopixelfx twinkle <i>color</i> [backgroundcolor] [speed]
 
-neopixel twinklefade color [count] [speed]
+neopixelfx twinklefade <i>color</i> [count] [speed]
 
-neopixel sparkle color [backgroundcolor] [speed]
+neopixelfx sparkle <i>color</i> [backgroundcolor] [speed]
 
-neopixel fire [fps] [brightness] [cooling] [brightness]
+neopixelfx fire [fps] [brightness] [cooling] [brightness]
 
-neopixel stop
+neopixelfx stop
 	stops the effect
 
 Use:
 
-needed:
-color,backgroundcolor -> targetcolor in hex format e.g. ff0000 for red
+<i>needed:</i>
+startcolor,endcolor,color,backgroundcolor -> targetcolor in hex format e.g. ff0000 for red
 
 [optional]:
 fadetime ->  fadetime per pixel in ms
