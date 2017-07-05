@@ -4,51 +4,51 @@
 /*
 List of commands:
 
-neopixel off [fadetime] [delay]
+neopixelfx off [fadetime] [delay]
 	switches the stripe off
 
-neopixel on [fadetime] [delay]
+neopixelfx on [fadetime] [delay]
 	restores last state of the stripe
 
-neopixel dim [dimvalue]
+neopixelfx dim [dimvalue]
 	dimvalue 0-255
 
-neopixel line <startpixel> <endpixel> <color>
+neopixelfx line startpixel endpixel color
 
-neopixel one <pixel> <color>
+neopixelfx one pixel color
 
-neopixel all <color> [fadetime] [delay]
-neopixel rgb <color> [fadetime] [delay]
-neopixel fade <color> [fadetime] [delay]
+neopixelfx all color [fadetime] [delay]
+neopixelfx rgb color [fadetime] [delay]
+neopixelfx fade color [fadetime] [delay]
 
-neopixel colorfade <startcolor> <endcolor> [startpixel] [endpixel]
+neopixelfx colorfade startcolor endcolor [startpixel] [endpixel]
 
-neopixel rainbow [speed]
+neopixelfx rainbow [speed]
 
-neopixel kitt <color> [speed]
+neopixelfx kitt color [speed]
 
-neopixel comet <color> [speed]
+neopixelfx comet color [speed]
 
-neopixel theatre <color> [backgroundcolor] [count] [speed]
+neopixelfx theatre color [backgroundcolor] [count] [speed]
 
-neopixel scan <color> [backgroundcolor] [speed]
+neopixelfx scan color [backgroundcolor] [speed]
 
-neopixel dualscan <color> [backgroundcolor] [speed]
+neopixelfx dualscan color [backgroundcolor] [speed]
 
-neopixel twinkle <color> [backgroundcolor] [speed]
+neopixelfx twinkle color [backgroundcolor] [speed]
 
-neopixel twinklefade <color> [count] [speed]
+neopixelfx twinklefade color [count] [speed]
 
-neopixel sparkle <color> [backgroundcolor] [speed]
+neopixelfx sparkle color [backgroundcolor] [speed]
 
-neopixel fire [fps] [brightness] [cooling] [brightness]
+neopixelfx fire [fps] [brightness] [cooling] [brightness]
 
-neopixel stop
+neopixelfx stop
 	stops the effect
 
 Use:
 
-<needed>:
+needed:
 color,backgroundcolor -> targetcolor in hex format e.g. ff0000 for red
 
 [optional]:
@@ -196,7 +196,7 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
           String log = "";
           String command = parseString(string, 1);
 
-          if (command == F("neopixel")) {
+          if (command == F("neopixelfx")) {
             success = true;
             String subCommand = parseString(string, 2);
 
@@ -919,19 +919,14 @@ void hex2rgb_pixel(String hexcolor) {
 // ------------------------------ JsonResponse -------------------------------------
 // ---------------------------------------------------------------------------------
 void NeoPixelSendStatus(byte eventSource) {
-  String log = String(F("NeoPixel: Set ")) + rgb.R
+  String log = String(F("NeoPixelBusFX: Set ")) + rgb.R
              + String(F("/")) + rgb.G + String(F("/")) + rgb.B;
   addLog(LOG_LEVEL_INFO, log);
-
-//  String onOff = (Plugin_123_lightParam.state) ? "on" : "off";
-//  String cm = (Plugin_123_lightParam.colorMode == 2) ? "ct" : "rgb";
 
   String json;
   printToWebJSON = true;
   json += F("{\n");
   json += F("\"plugin\": \"124");
-//  json += F("\",\n\"onOff\": \"");
-//  json += onOff;
   json += F("\",\n\"Mode\": \"");
   json += modeName[mode];
   json += F("\",\n\"Last Mode\": \"");
