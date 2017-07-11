@@ -307,12 +307,12 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
 
 							hex2rgb(parseString(string, 3));
 							hex2rrggbb(parseString(string, 4));
-							startpixel = parseString(string, 5).toInt();
-							endpixel = parseString(string, 6).toInt();
-
-              // rainbowspeed = (parseString(string, 3) == "")
-							// 	? 1
-							// 	: parseString(string, 3).toInt();
+							startpixel = (parseString(string, 5) == "")
+								? 0
+								: parseString(string, 5).toInt() - 1;
+							endpixel = (parseString(string, 6) == "")
+								? pixelCount
+								: parseString(string, 6).toInt();
             }
 
 						else if (subCommand == F("kitt")) {
