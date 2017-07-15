@@ -43,6 +43,16 @@ neopixelfx fire [fps] [brightness] [cooling] [brightness]
 neopixelfx stop
 	stops the effect
 
+neopixelfx statusrequest
+	sends status
+	
+neopixelfx fadetime <i>value in ms</i>
+neopixelfx fadedelay <i>value in +/- ms</i>
+neopixelfx speed <i>value 0-50</i>
+neopixelfx count <i>number of pixels</i>
+neopixelfx bgcolor <i>color</i>
+	sets default parameter
+
 Use:
 
 <i>needed:</i>
