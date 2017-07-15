@@ -41,7 +41,7 @@ neopixelfx twinklefade color [count] [speed]
 
 neopixelfx sparkle color [backgroundcolor] [speed]
 
-neopixelfx fire [fps] [brightness] [cooling] [brightness]
+neopixelfx fire [fps] [brightness] [cooling] [sparking]
 
 neopixelfx stop
 	stops the effect
