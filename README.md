@@ -63,11 +63,11 @@ fadetime ->  fadetime per pixel in ms<br>
 delay ->  delay time to next pixel in ms, if delay < 0 fades from other end of the stripe<br>
 
 
-Based on WS2812FX, NeoPixelBus, Lights, NeoPixel - Basic and Candle modules
+Based on WS2812FX, NeoPixelBus, Lights, NeoPixel - Basic and Candle modules<br>
 
-https://github.com/letscontrolit/ESPEasy
-https://github.com/kitesurfer1404/WS2812FX
-https://github.com/Makuna/NeoPixelBus
-https://github.com/ddtlabs/ESPEasy-Plugin-Lights
+https://github.com/Makuna/NeoPixelBus<br>
+https://github.com/letscontrolit/ESPEasy<br>
+https://github.com/kitesurfer1404/WS2812FX<br>
+https://github.com/ddtlabs/ESPEasy-Plugin-Lights<br>
 
 Thank you to all developers
