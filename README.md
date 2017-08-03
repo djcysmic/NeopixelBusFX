@@ -38,7 +38,7 @@ neopixelfx twinklefade <i>color</i> [count] [speed]<br>
 
 neopixelfx sparkle <i>color</i> [backgroundcolor] [speed]<br>
 
-neopixelfx fire [fps] [brightness] [cooling] [brightness]<br>
+neopixelfx fire [fps] [brightness] [cooling] [sparking]<br>
 
 neopixelfx stop<br>
 o stops the effect<br>
