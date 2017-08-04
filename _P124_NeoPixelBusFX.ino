@@ -41,6 +41,8 @@ neopixelfx twinklefade color [count] [speed]
 
 neopixelfx sparkle color [backgroundcolor] [speed]
 
+neopixelfx wipe color [dotcolor] [speed]
+
 neopixelfx fire [fps] [brightness] [cooling] [sparking]
 
 neopixelfx stop
@@ -64,6 +66,7 @@ color,backgroundcolor -> targetcolor in hex format e.g. ff0000 for red
 [optional]:
 fadetime ->  fadetime per pixel in ms
 delay ->  delay time to next pixel in ms, if delay < 0 fades from other end of the stripe
+speed -> 0-50, speed < 0 for reverse
 
 
 Based on WS2812FX, NeoPixelBus, Lights, NeoPixel - Basic and Candle modules
@@ -80,7 +83,7 @@ Thank you to all developers
 #include <FastLED.h> //for math operations in FireFX
 
 #define SPEED_MAX 50
-#define ARRAYSIZE 255
+#define ARRAYSIZE 300 //Max LED Count
 #define NEOPIXEL_LIB NeoPixelBrightnessBus // Neopixel library type
 #define FEATURE NeoGrbFeature	 //Color order
 #define METHOD NeoEsp8266Uart800KbpsMethod //GPIO2 - use NeoEsp8266Dma800KbpsMethod for GPIO3(TX)
@@ -127,11 +130,11 @@ starttime[ARRAYSIZE],
 maxtime = 0;
 
 enum modetype {
-	Off, On, Fade, ColorFade, Rainbow, Kitt, Comet, Theatre, Scan, Dualscan, Twinkle, TwinkleFade, Sparkle, Fire
+	Off, On, Fade, ColorFade, Rainbow, Kitt, Comet, Theatre, Scan, Dualscan, Twinkle, TwinkleFade, Sparkle, Fire, Wipe
 };
 
 const char* modeName[] = {
-	"Off", "On", "Fade", "ColorFade", "Rainbow", "Kitt", "Comet", "Theatre", "Scan", "Dualscan", "Twinkle", "TwinkleFade", "Sparkle", "Fire"
+	"Off", "On", "Fade", "ColorFade", "Rainbow", "Kitt", "Comet", "Theatre", "Scan", "Dualscan", "Twinkle", "TwinkleFade", "Sparkle", "Fire", "Wipe"
 };
 
 modetype mode,savemode,lastmode;
@@ -498,6 +501,23 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
 					: parseString(string, 5).toInt();
 				}
 
+				else if (subCommand == F("wipe")) {
+					mode = Wipe;
+
+					_counter_mode_step = 0;
+
+					hex2rgb(parseString(string, 3));
+					if (parseString(string, 4) != "") {
+						hex2rrggbb(parseString(string, 4));
+					} else {
+						hex2rrggbb("000000");
+					}
+
+					speed = (parseString(string, 5) == "")
+					? defaultspeed
+					: parseString(string, 5).toInt();
+				}
+
 				else if (subCommand == F("fire")) {
 					mode = Fire;
 
@@ -537,7 +557,8 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
 				&& subCommand != F("dualscan") && subCommand != F("twinkle")
 				&& subCommand != F("sparkle") && subCommand != F("fire")
 				&& subCommand != F("twinklefade") && subCommand != F("stop")
-			  && subCommand != F("colorfade") && subCommand != F("statusrequest") ) {
+				&& subCommand != F("wipe") && subCommand != F("colorfade")
+				&& subCommand != F("statusrequest") ) {
 					log = F("NeoPixelBus: unknown subcommand: ");
 					log += subCommand;
 					addLog(LOG_LEVEL_INFO, log);
@@ -616,6 +637,10 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
 				fire();
 				break;
 
+				case Wipe:
+				wipe();
+				break;
+
 				default:
 				break;
 			} // switch mode
@@ -678,6 +703,20 @@ for(uint8_t i = 0; i < difference; i++)
 		Plugin_124_pixels->SetPixelColor(i + startpixel, updatedColor);
 	}
 	mode = On;
+}
+
+void wipe(void) {
+	if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0) {
+		if (speed > 0) {
+			Plugin_124_pixels->SetPixelColor(_counter_mode_step, rrggbb);
+			if ( _counter_mode_step > 0 ) Plugin_124_pixels->SetPixelColor( _counter_mode_step - 1, rgb);
+		} else {
+			Plugin_124_pixels->SetPixelColor(pixelCount - _counter_mode_step - 1, rrggbb);
+			if ( _counter_mode_step > 0 ) Plugin_124_pixels->SetPixelColor( pixelCount - _counter_mode_step, rgb);
+		}
+		if ( _counter_mode_step == pixelCount ) mode = On;
+		_counter_mode_step++;
+	}
 }
 
 /*
