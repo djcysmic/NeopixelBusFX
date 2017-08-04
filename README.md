@@ -1,58 +1,61 @@
+<b>ATTENTION! Due to an implementation in FHEM the main command has changed to "nfx"!<br>
+For now it is also possible to use the old main command "neopixelfx", but maybe I will kick it out at later versions.</b>
+
 <i><b>List of commands:</b></i><br>
 
-neopixelfx off [fadetime] [delay]<br>
+nfx off [fadetime] [delay]<br>
 o switches the stripe off<br>
 
-neopixelfx on [fadetime] [delay]<br>
+nfx on [fadetime] [delay]<br>
 o restores last state of the stripe<br>
 
-neopixelfx dim <i>dimvalue</i><br>
+nfx dim <i>dimvalue</i><br>
 o dim stripe overall<br>
 o dimvalue 0-255<br>
 
-neopixelfx line <i>startpixel endpixel color</i><br>
+nfx line <i>startpixel endpixel color</i><br>
 
-neopixelfx one <i>pixel color</i><br>
+nfx one <i>pixel color</i><br>
 
-neopixelfx all <i>color</i> [fadetime] [delay]<br>
-neopixelfx rgb <i>color</i> [fadetime] [delay]<br>
-neopixelfx fade <i>color</i> [fadetime] [delay]<br>
+nfx all <i>color</i> [fadetime] [delay]<br>
+nfx rgb <i>color</i> [fadetime] [delay]<br>
+nfx fade <i>color</i> [fadetime] [delay]<br>
 
-neopixelfx colorfade <i>startcolor endcolor</i> [startpixel] [endpixel]<br>
+nfx colorfade <i>startcolor endcolor</i> [startpixel] [endpixel]<br>
 
-neopixelfx rainbow [speed]<br>
+nfx rainbow [speed]<br>
 
-neopixelfx kitt <i>color</i> [speed]<br>
+nfx kitt <i>color</i> [speed]<br>
 
-neopixelfx comet <i>color</i> [speed]<br>
+nfx comet <i>color</i> [speed]<br>
 
-neopixelfx theatre <i>color</i> [backgroundcolor] [count] [speed]<br>
+nfx theatre <i>color</i> [backgroundcolor] [count] [speed]<br>
 
-neopixelfx scan <i>color</i> [backgroundcolor] [speed]<br>
+nfx scan <i>color</i> [backgroundcolor] [speed]<br>
 
-neopixelfx dualscan <i>color</i> [backgroundcolor] [speed]<br>
+nfx dualscan <i>color</i> [backgroundcolor] [speed]<br>
 
-neopixelfx twinkle <i>color</i> [backgroundcolor] [speed]<br>
+nfx twinkle <i>color</i> [backgroundcolor] [speed]<br>
 
-neopixelfx twinklefade <i>color</i> [count] [speed]<br>
+nfx twinklefade <i>color</i> [count] [speed]<br>
 
-neopixelfx sparkle <i>color</i> [backgroundcolor] [speed]<br>
+nfx sparkle <i>color</i> [backgroundcolor] [speed]<br>
 
-neopixelfx wipe color [dotcolor] [speed]<br>
+nfx wipe color [dotcolor] [speed]<br>
 
-neopixelfx fire [fps] [brightness] [cooling] [sparking]<br>
+nfx fire [fps] [brightness] [cooling] [sparking]<br>
 
-neopixelfx stop<br>
+nfx stop<br>
 o stops the effect<br>
 
-neopixelfx statusrequest<br>
+nfx statusrequest<br>
 o sends status<br>
 	
-neopixelfx fadetime <i>value in ms</i><br>
-neopixelfx fadedelay <i>value in +/- ms</i><br>
-neopixelfx speed <i>value 0-50</i><br>
-neopixelfx count <i>number of pixels</i><br>
-neopixelfx bgcolor <i>color</i><br>
+nfx fadetime <i>value in ms</i><br>
+nfx fadedelay <i>value in +/- ms</i><br>
+nfx speed <i>value 0-50</i><br>
+nfx count <i>number of pixels</i><br>
+nfx bgcolor <i>color</i><br>
 o sets default parameter
 
 Use:<br>
