@@ -4,58 +4,58 @@
 /*
 List of commands:
 
-neopixelfx off [fadetime] [delay]
+nfx off [fadetime] [delay]
 switches the stripe off
 
-neopixelfx on [fadetime] [delay]
+nfx on [fadetime] [delay]
 restores last state of the stripe
 
-neopixelfx dim [dimvalue]
+nfx dim [dimvalue]
 dimvalue 0-255
 
-neopixelfx line startpixel endpixel color
+nfx line startpixel endpixel color
 
-neopixelfx one pixel color
+nfx one pixel color
 
-neopixelfx all color [fadetime] [delay]
-neopixelfx rgb color [fadetime] [delay]
-neopixelfx fade color [fadetime] [delay]
+nfx all color [fadetime] [delay]
+nfx rgb color [fadetime] [delay]
+nfx fade color [fadetime] [delay]
 
-neopixelfx colorfade startcolor endcolor [startpixel] [endpixel]
+nfx colorfade startcolor endcolor [startpixel] [endpixel]
 
-neopixelfx rainbow [speed]
+nfx rainbow [speed]
 
-neopixelfx kitt color [speed]
+nfx kitt color [speed]
 
-neopixelfx comet color [speed]
+nfx comet color [speed]
 
-neopixelfx theatre color [backgroundcolor] [count] [speed]
+nfx theatre color [backgroundcolor] [count] [speed]
 
-neopixelfx scan color [backgroundcolor] [speed]
+nfx scan color [backgroundcolor] [speed]
 
-neopixelfx dualscan color [backgroundcolor] [speed]
+nfx dualscan color [backgroundcolor] [speed]
 
-neopixelfx twinkle color [backgroundcolor] [speed]
+nfx twinkle color [backgroundcolor] [speed]
 
-neopixelfx twinklefade color [count] [speed]
+nfx twinklefade color [count] [speed]
 
-neopixelfx sparkle color [backgroundcolor] [speed]
+nfx sparkle color [backgroundcolor] [speed]
 
-neopixelfx wipe color [dotcolor] [speed]
+nfx wipe color [dotcolor] [speed]
 
-neopixelfx fire [fps] [brightness] [cooling] [sparking]
+nfx fire [fps] [brightness] [cooling] [sparking]
 
-neopixelfx stop
+nfx stop
 	stops the effect
 
-neopixelfx statusrequest
+nfx statusrequest
 	sends status
 
-neopixelfx fadetime
-neopixelfx fadedelay
-neopixelfx speed
-neopixelfx count
-neopixelfx bgcolor
+nfx fadetime
+nfx fadedelay
+nfx speed
+nfx count
+nfx bgcolor
 	sets default parameter
 
 Use:
@@ -247,7 +247,7 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
 			String log = "";
 			String command = parseString(string, 1);
 
-			if (command == F("neopixelfx")) {
+			if (command == F("neopixelfx") || command == F("nfx")) {
 				success = true;
 				String subCommand = parseString(string, 2);
 
