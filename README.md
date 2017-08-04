@@ -38,6 +38,8 @@ neopixelfx twinklefade <i>color</i> [count] [speed]<br>
 
 neopixelfx sparkle <i>color</i> [backgroundcolor] [speed]<br>
 
+neopixelfx wipe color [dotcolor] [speed]<br>
+
 neopixelfx fire [fps] [brightness] [cooling] [sparking]<br>
 
 neopixelfx stop<br>
@@ -56,11 +58,12 @@ o sets default parameter
 Use:<br>
 
 <i>needed:</i><br>
-startcolor,endcolor,color,backgroundcolor -> targetcolor in hex format e.g. ff0000 for red<br>
+startcolor,endcolor,color,backgroundcolor, dotcolor -> targetcolor in hex format e.g. ff0000 for red<br>
 
 [optional] : <br>
 fadetime ->  fadetime per pixel in ms<br>
 delay ->  delay time to next pixel in ms, if delay < 0 fades from other end of the stripe<br>
+speed -> 0-50, speed < 0 for reverse
 
 
 Based on WS2812FX, NeoPixelBus, Lights, NeoPixel - Basic and Candle modules<br>
