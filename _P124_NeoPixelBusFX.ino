@@ -337,6 +337,10 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
 				else if (subCommand == F("fade") || subCommand == F("all") || subCommand == F("rgb")) {
 					mode = Fade;
 
+					if (subCommand == F("all") || subCommand == F("rgb")) {
+						fadedelay = 0;
+					}
+					
 					hex2rgb_pixel(parseString(string, 3));
 
 					fadetime = (parseString(string, 4) == "")
@@ -345,10 +349,6 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
 					fadedelay = (parseString(string, 5) == "")
 					? fadedelay
 					: parseString(string, 5).toInt();
-
-					if (subCommand == F("all") || subCommand == F("rgb")) {
-						fadedelay = 0;
-					}
 
 					uint8_t r_pixel;
 
