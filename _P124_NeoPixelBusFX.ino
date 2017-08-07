@@ -134,7 +134,7 @@ enum modetype {
 };
 
 const char* modeName[] = {
-	"Off", "On", "Fade", "ColorFade", "Rainbow", "Kitt", "Comet", "Theatre", "Scan", "Dualscan", "Twinkle", "TwinkleFade", "Sparkle", "Fire", "Wipe"
+	"off", "on", "fade", "colorfade", "rainbow", "kitt", "comet", "theatre", "scan", "dualscan", "twinkle", "twinklefade", "sparkle", "fire", "wipe"
 };
 
 modetype mode,savemode,lastmode;
@@ -1044,13 +1044,13 @@ void NeoPixelSendStatus(byte eventSource) {
 	printToWebJSON = true;
 	json += F("{\n");
 	json += F("\"plugin\": \"124");
-	json += F("\",\n\"Mode\": \"");
+	json += F("\",\n\"mode\": \"");
 	json += modeName[mode];
-	json += F("\",\n\"Last Mode\": \"");
+	json += F("\",\n\"last mode\": \"");
 	json += modeName[savemode];
-	json += F("\",\n\"Fadetime\": \"");
+	json += F("\",\n\"fadetime\": \"");
 	json += fadetime;
-	json += F("\",\n\"Fadedelay\": \"");
+	json += F("\",\n\"fadedelay\": \"");
 	json += fadedelay;
 	json += F("\",\n\"dim\": \"");
 	json += Plugin_124_pixels->GetBrightness();
