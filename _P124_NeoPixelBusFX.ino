@@ -1052,11 +1052,11 @@ void NeoPixelSendStatus(byte eventSource) {
 	json += fadetime;
 	json += F("\",\n\"Fadedelay\": \"");
 	json += fadedelay;
-	json += F("\",\n\"Dimvalue\": \"");
+	json += F("\",\n\"dim\": \"");
 	json += Plugin_124_pixels->GetBrightness();
-	json += F("\",\n\"Color\": \"");
+	json += F("\",\n\"rgb\": \"");
 	json += colorStr;
-	json += F("\",\n\"Backgroundcolor\": \"");
+	json += F("\",\n\"bgcolor\": \"");
 	json += backgroundcolorStr;
 	json += F("\"\n}\n");
 	SendStatus(eventSource, json); // send http response to controller (JSON format)
