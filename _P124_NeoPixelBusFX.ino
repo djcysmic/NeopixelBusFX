@@ -1046,7 +1046,7 @@ void NeoPixelSendStatus(byte eventSource) {
 	json += F("\"plugin\": \"124");
 	json += F("\",\n\"mode\": \"");
 	json += modeName[mode];
-	json += F("\",\n\"last mode\": \"");
+	json += F("\",\n\"lastmode\": \"");
 	json += modeName[savemode];
 	json += F("\",\n\"fadetime\": \"");
 	json += fadetime;
