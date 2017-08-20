@@ -45,6 +45,8 @@ nfx wipe color [dotcolor] [speed]
 
 nfx fire [fps] [brightness] [cooling] [sparking]
 
+nfx faketv [startpixel] [endpixel]
+
 nfx stop
 	stops the effect
 
@@ -69,8 +71,9 @@ delay ->  delay time to next pixel in ms, if delay < 0 fades from other end of t
 speed -> 0-50, speed < 0 for reverse
 
 
-Based on WS2812FX, NeoPixelBus, Lights, NeoPixel - Basic and Candle modules
+Based on Adafruit Fake TV Light for Engineers, WS2812FX, NeoPixelBus, Lights, NeoPixel - Basic and Candle modules
 
+https://learn.adafruit.com/fake-tv-light-for-engineers/overview
 https://github.com/letscontrolit/ESPEasy
 https://github.com/kitesurfer1404/WS2812FX
 https://github.com/Makuna/NeoPixelBus
@@ -81,12 +84,15 @@ Thank you to all developers
 
 #include <NeoPixelBrightnessBus.h>
 #include <FastLED.h> //for math operations in FireFX
+#include <faketv.h> //color pattern for FakeTV
 
 #define SPEED_MAX 50
 #define ARRAYSIZE 300 //Max LED Count
 #define NEOPIXEL_LIB NeoPixelBrightnessBus // Neopixel library type
-#define FEATURE NeoGrbFeature	 //Color order
+#define FEATURE NeoBrgFeature//NeoGrbFeature	 //Color order
 #define METHOD NeoEsp8266Uart800KbpsMethod //GPIO2 - use NeoEsp8266Dma800KbpsMethod for GPIO3(TX)
+
+#define  numPixels (sizeof(ftv_colors) / sizeof(ftv_colors[0]))
 
 NEOPIXEL_LIB<FEATURE, METHOD> *Plugin_124_pixels;
 
@@ -99,6 +105,8 @@ startpixel,
 endpixel,
 difference,
 colorcount;
+
+uint16_t ftv_pr = 0, ftv_pg = 0, ftv_pb = 0; // Prev R, G, B;
 
 RgbColor rgb_target[ARRAYSIZE],
 rgb_old[ARRAYSIZE],
@@ -114,7 +122,9 @@ fps = 50,
 count = 1;
 
 uint32_t	_counter_mode_step = 0,
-fadetime = 1000;
+fadetime = 1000,
+ftv_holdTime,
+pixelNum;
 
 String colorStr,
 backgroundcolorStr;
@@ -130,11 +140,11 @@ starttime[ARRAYSIZE],
 maxtime = 0;
 
 enum modetype {
-	Off, On, Fade, ColorFade, Rainbow, Kitt, Comet, Theatre, Scan, Dualscan, Twinkle, TwinkleFade, Sparkle, Fire, Wipe
+	Off, On, Fade, ColorFade, Rainbow, Kitt, Comet, Theatre, Scan, Dualscan, Twinkle, TwinkleFade, Sparkle, Fire, Wipe, FakeTV
 };
 
 const char* modeName[] = {
-	"off", "on", "fade", "colorfade", "rainbow", "kitt", "comet", "theatre", "scan", "dualscan", "twinkle", "twinklefade", "sparkle", "fire", "wipe"
+	"off", "on", "fade", "colorfade", "rainbow", "kitt", "comet", "theatre", "scan", "dualscan", "twinkle", "twinklefade", "sparkle", "fire", "wipe", "faketv"
 };
 
 modetype mode,savemode,lastmode;
@@ -340,7 +350,7 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
 					if (subCommand == F("all") || subCommand == F("rgb")) {
 						fadedelay = 0;
 					}
-					
+
 					hex2rgb_pixel(parseString(string, 3));
 
 					fadetime = (parseString(string, 4) == "")
@@ -518,6 +528,21 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
 					: parseString(string, 5).toInt();
 				}
 
+				else if (subCommand == F("faketv")) {
+					mode = FakeTV;
+					_counter_mode_step = 0;
+
+					randomSeed(analogRead(A0));
+					pixelNum = random(numPixels); // Begin at random point
+
+					startpixel = (parseString(string, 3) == "")
+					? 0
+					: parseString(string, 3).toInt() - 1;
+					endpixel = (parseString(string, 4) == "")
+					? pixelCount
+					: parseString(string, 4).toInt();
+				}
+
 				else if (subCommand == F("fire")) {
 					mode = Fire;
 
@@ -558,7 +583,7 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
 				&& subCommand != F("sparkle") && subCommand != F("fire")
 				&& subCommand != F("twinklefade") && subCommand != F("stop")
 				&& subCommand != F("wipe") && subCommand != F("colorfade")
-				&& subCommand != F("statusrequest") ) {
+				&& subCommand != F("statusrequest") && subCommand != F("faketv")) {
 					log = F("NeoPixelBus: unknown subcommand: ");
 					log += subCommand;
 					addLog(LOG_LEVEL_INFO, log);
@@ -641,6 +666,10 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
 				wipe();
 				break;
 
+				case FakeTV:
+				faketv();
+				break;
+
 				default:
 				break;
 			} // switch mode
@@ -719,6 +748,64 @@ void wipe(void) {
 	}
 }
 
+void faketv(void) {
+	if (counter20ms >= ftv_holdTime) {
+
+		uint32_t ftv_totalTime, ftv_fadeTime, ftv_startTime, ftv_elapsed;
+		uint16_t ftv_nr, ftv_ng, ftv_nb, ftv_r, ftv_g, ftv_b, ftv_i;
+		uint8_t  ftv_hi, ftv_lo, ftv_r8, ftv_g8, ftv_b8, ftv_frac;
+		difference = abs(endpixel - startpixel);
+
+		if (ftv_elapsed >= ftv_fadeTime) {
+			// Read next 16-bit (5/6/5) color
+			ftv_hi = pgm_read_byte(&ftv_colors[pixelNum * 2    ]);
+			ftv_lo = pgm_read_byte(&ftv_colors[pixelNum * 2 + 1]);
+			if(++pixelNum >= numPixels) pixelNum = 0;
+
+			// Expand to 24-bit (8/8/8)
+			ftv_r8 = (ftv_hi & 0xF8) | (ftv_hi >> 5);
+			ftv_g8 = (ftv_hi << 5) | ((ftv_lo & 0xE0) >> 3) | ((ftv_hi & 0x06) >> 1);
+			ftv_b8 = (ftv_lo << 3) | ((ftv_lo & 0x1F) >> 2);
+			// Apply gamma correction, further expand to 16/16/16
+			ftv_nr = (uint8_t)pgm_read_byte(&ftv_gamma8[ftv_r8]) * 257; // New R/G/B
+			ftv_ng = (uint8_t)pgm_read_byte(&ftv_gamma8[ftv_g8]) * 257;
+			ftv_nb = (uint8_t)pgm_read_byte(&ftv_gamma8[ftv_b8]) * 257;
+
+			ftv_totalTime = random(12, 125);    // Semi-random pixel-to-pixel time
+			ftv_fadeTime  = random(0, ftv_totalTime); // Pixel-to-pixel transition time
+			if(random(10) < 3) ftv_fadeTime = 0;  // Force scene cut 30% of time
+			ftv_holdTime  = counter20ms + ftv_totalTime - ftv_fadeTime; // Non-transition time
+			ftv_startTime = counter20ms;
+		}
+
+		ftv_elapsed = counter20ms - ftv_startTime;
+		if(ftv_fadeTime) {
+			ftv_r = map(ftv_elapsed, 0, ftv_fadeTime, ftv_pr, ftv_nr); // 16-bit interp
+			ftv_g = map(ftv_elapsed, 0, ftv_fadeTime, ftv_pg, ftv_ng);
+			ftv_b = map(ftv_elapsed, 0, ftv_fadeTime, ftv_pb, ftv_nb);
+		} else { // Avoid divide-by-zero in map()
+			ftv_r = ftv_nr;
+			ftv_g = ftv_ng;
+			ftv_b = ftv_nb;
+		}
+
+		for(ftv_i=0; ftv_i<difference; ftv_i++) {
+			ftv_r8   = ftv_r >> 8; // Quantize to 8-bit
+			ftv_g8   = ftv_g >> 8;
+			ftv_b8   = ftv_b >> 8;
+			ftv_frac = (ftv_i << 8) / difference; // LED index scaled to 0-255
+			if((ftv_r8 < 255) && ((ftv_r & 0xFF) >= ftv_frac)) ftv_r8++; // Boost some fraction
+			if((ftv_g8 < 255) && ((ftv_g & 0xFF) >= ftv_frac)) ftv_g8++; // of LEDs to handle
+			if((ftv_b8 < 255) && ((ftv_b & 0xFF) >= ftv_frac)) ftv_b8++; // interp > 8bit
+			Plugin_124_pixels->SetPixelColor(ftv_i + startpixel, RgbColor(ftv_r8, ftv_g8, ftv_b8));
+		}
+
+		ftv_pr = ftv_nr; // Prev RGB = new RGB
+		ftv_pg = ftv_ng;
+		ftv_pb = ftv_nb;
+	}
+}
+
 /*
 * Cycles a rainbow over the entire string of LEDs.
 */
@@ -756,7 +843,7 @@ uint32_t Wheel(uint8_t pos) {
 // Larson Scanner K.I.T.T.
 void kitt(void) {
 
-	if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0)
+	if (counter20ms % abs( SPEED_MAX / speed ) == 0)
 	{
 		for(uint16_t i=0; i < pixelCount; i++) {
 			RgbColor px_rgb = Plugin_124_pixels->GetPixelColor(i);
@@ -848,7 +935,7 @@ void theatre(void) {
 * Runs a single pixel back and forth.
 */
 void scan(void) {
-	if (counter20ms % ( SPEED_MAX / speed ) == 0 && speed != 0)
+	if (counter20ms % abs( SPEED_MAX / speed ) == 0 && speed != 0)
 	{
 		if(_counter_mode_step > (pixelCount*2) - 2) {
 			_counter_mode_step = 0;
@@ -871,7 +958,7 @@ void scan(void) {
 */
 void dualscan(void) {
 
-	if (counter20ms % ( SPEED_MAX / speed ) == 0 && speed != 0) {
+	if (counter20ms % abs( SPEED_MAX / speed ) == 0 && speed != 0) {
 		if(_counter_mode_step > (pixelCount*2) - 2) {
 			_counter_mode_step = 0;
 		}
@@ -896,7 +983,7 @@ void dualscan(void) {
 */
 void twinkle(void) {
 
-	if (counter20ms % ( SPEED_MAX / speed ) == 0 && speed != 0)
+	if (counter20ms % abs( SPEED_MAX / speed ) == 0 && speed != 0)
 	{
 		if(_counter_mode_step == 0) {
 			//Plugin_124_pixels->ClearTo(rrggbb);
@@ -918,7 +1005,7 @@ void twinkle(void) {
 */
 void twinklefade(void) {
 
-	if (counter20ms % ( SPEED_MAX / speed ) == 0 && speed != 0)
+	if (counter20ms % abs( SPEED_MAX / speed ) == 0 && speed != 0)
 	{
 		for(uint16_t i=0; i < pixelCount; i++) {
 
@@ -947,7 +1034,7 @@ void twinklefade(void) {
 */
 void sparkle(void) {
 
-	if (counter20ms % ( SPEED_MAX / speed ) == 0 && speed != 0)
+	if (counter20ms % abs( SPEED_MAX / speed ) == 0 && speed != 0)
 	{
 		//Plugin_124_pixels->ClearTo(rrggbb);
 		for (int i = 0; i < pixelCount; i++) Plugin_124_pixels->SetPixelColor(i,rrggbb);
