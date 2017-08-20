@@ -45,6 +45,9 @@ nfx wipe color [dotcolor] [speed]<br>
 
 nfx fire [fps] [brightness] [cooling] [sparking]<br>
 
+nfx faketv [startpixel] [endpixel]<br>
+Paste faketv.h in ./src<br>
+
 nfx stop<br>
 o stops the effect<br>
 
@@ -69,8 +72,9 @@ delay ->  delay time to next pixel in ms, if delay < 0 fades from other end of t
 speed -> 0-50, speed < 0 for reverse
 
 
-Based on WS2812FX, NeoPixelBus, Lights, NeoPixel - Basic and Candle modules<br>
+Based on Adafruit Fake TV Light for Engineers, WS2812FX, NeoPixelBus, Lights, NeoPixel - Basic and Candle modules<br>
 
+https://learn.adafruit.com/fake-tv-light-for-engineers/overview<br>
 https://github.com/Makuna/NeoPixelBus<br>
 https://github.com/letscontrolit/ESPEasy<br>
 https://github.com/kitesurfer1404/WS2812FX<br>
