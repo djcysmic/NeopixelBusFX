@@ -89,7 +89,7 @@ Thank you to all developers
 #define SPEED_MAX 50
 #define ARRAYSIZE 300 //Max LED Count
 #define NEOPIXEL_LIB NeoPixelBrightnessBus // Neopixel library type
-#define FEATURE NeoBrgFeature//NeoGrbFeature	 //Color order
+#define FEATURE NeoGrbFeature	 //Color order
 #define METHOD NeoEsp8266Uart800KbpsMethod //GPIO2 - use NeoEsp8266Dma800KbpsMethod for GPIO3(TX)
 
 #define  numPixels (sizeof(ftv_colors) / sizeof(ftv_colors[0]))
