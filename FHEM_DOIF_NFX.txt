@@ -1,0 +1,89 @@
+defmod di.sz.nfx DOIF ## cmd_1: Ausschalten\
+([$SELF:effect] eq "off") (\
+	set [$SELF:device] nfx off 1000 10\
+)\
+## cmd_2: Animation anhalten\
+DOELSEIF ([$SELF:effect] eq "stop") (\
+	set [$SELF:device] nfx stop\
+)\
+## cmd_3: Einschalten\
+DOELSEIF ([$SELF:effect] eq "on") (\
+	set [$SELF:device] nfx on 1000 10\
+)\
+## cmd_4: Alle Pixel auf eine Farbe setzen\
+DOELSEIF ([$SELF:effect] eq "all") (\
+	set [$SELF:device] nfx all [$SELF:color_1]\
+)\
+## cmd_5: Regenbogen-Effekt\
+DOELSEIF ([$SELF:effect] eq "rainbow") (\
+	set [$SELF:device] nfx rainbow [$SELF:speed]\
+)\
+## cmd_6: Feuer-Effekt\
+DOELSEIF ([$SELF:effect] eq "fire") (\
+	set [$SELF:device] nfx fire [$SELF:speed] 255 40 20\
+)\
+## cmd_7: Fake TV Animation\
+DOELSEIF ([$SELF:effect] eq "faketv") (\
+	set [$SELF:device] nfx faketv 1 72\
+)\
+## cmd_8: Colorfade\
+DOELSEIF ([$SELF:effect] eq "colorfade") (\
+	set [$SELF:device] nfx colorfade [$SELF:color_1] [$SELF:color_2] 1 72\
+)\
+## cmd_9: Knightrider\
+DOELSEIF ([$SELF:effect] eq "kitt") (\
+	set [$SELF:device] nfx kitt [$SELF:color_1] [$SELF:speed]\
+)\
+## cmd_10: Theater\
+DOELSEIF ([$SELF:effect] eq "theatre") (\
+	set [$SELF:device] nfx theatre [$SELF:color_1] [$SELF:color_2] 5 [$SELF:speed]\
+)\
+## cmd_11: Twinklefade\
+DOELSEIF ([$SELF:effect] eq "twinklefade") (\
+	set [$SELF:device] nfx twinklefade [$SELF:color_1] 8 [$SELF:speed]\
+)\
+## cmd_12: Wipe-Effekt\
+DOELSEIF ([$SELF:effect] eq "wipe") (\
+	set [$SELF:device] nfx wipe [$SELF:color_1] [$SELF:color_2] [$SELF:speed]\
+)\
+## cmd_13: Dualwipe-IN-Effekt\
+DOELSEIF ([$SELF:effect] eq "dualwipe") (\
+	set [$SELF:device] nfx dualwipe [$SELF:color_1] [$SELF:color_2] [$SELF:speed]\
+)\
+## cmd_14: Dualwipe-OUT-Effekt\
+DOELSEIF ([$SELF:effect] eq "dualwipeout") (\
+	set [$SELF:device] nfx dualwipe 000000 [$SELF:color_2] [$SELF:speed]\
+)\
+## cmd_15: Twinkle\
+DOELSEIF ([$SELF:effect] eq "twinkle") (\
+	set [$SELF:device] nfx theatre [$SELF:color_1] [$SELF:color_2] [$SELF:speed]\
+)\
+## cmd_16: Comet\
+DOELSEIF ([$SELF:effect] eq "comet") (\
+	set [$SELF:device] nfx comet [$SELF:color_1] [$SELF:speed]\
+)\
+## cmd_17: Scan\
+DOELSEIF ([$SELF:effect] eq "scan") (\
+	set [$SELF:device] nfx scan [$SELF:color_1] [$SELF:color_2] [$SELF:speed]\
+)\
+## cmd_18: Dualscan\
+DOELSEIF ([$SELF:effect] eq "dualscan") (\
+	set [$SELF:device] nfx dualscan [$SELF:color_1] [$SELF:color_2] [$SELF:speed]\
+)\
+## cmd_19: Sparkle\
+DOELSEIF ([$SELF:effect] eq "sparkle") (\
+	set [$SELF:device] nfx sparkle [$SELF:color_1] [$SELF:color_2] [$SELF:speed]\
+)
+attr di.sz.nfx alias NeopixelBusFX
+attr di.sz.nfx cmdIcon play:rc_PLAY stop:rc_STOP on:taster_ch_an_gruen off:taster_ch_aus_rot
+attr di.sz.nfx devStateIcon initialized:general_ok@green cmd_1:general_aus@darkred cmd_2:rc_STOP cmd_3:general_an@green cmd_4:rc_1 cmd_5:rc_2 cmd_6:rc_3 cmd_7:rc_4 cmd_8:rc_5 cmd_9:rc_6 cmd_10:rc_7 cmd_11:rc_8 cmd_12:rc_9
+attr di.sz.nfx do always
+attr di.sz.nfx eventMap /effect on:on/effect off:off/effect stop:stop/
+attr di.sz.nfx group 01_NeopixelBusFX
+attr di.sz.nfx icon hue_filled_lightstrip
+attr di.sz.nfx readingList speed,effect,color_1,color_2,device
+attr di.sz.nfx room Logik,Schlafzimmer
+attr di.sz.nfx setList device:test.esp.wemos.1,sz.esp.innensensor effect:wipe,dualwipe,dualwipeout,all,fire,faketv,kitt,comet,theatre,rainbow,colorfade,scan,dualscan,twinkle,twinklefade,sparkle color_1:colorpicker,rgb color_2:colorpicker,rgb speed:selectnumbers,-50,1,50,0,lin
+attr di.sz.nfx stateFormat state
+attr di.sz.nfx webCmd device:effect:color_1:color_2:speed:play:stop:on:off
+attr di.sz.nfx webCmdLabel Controller:Effekt:Farbe&nbsp;;1:Farbe&nbsp;;2:Speed:&nbsp;;:&nbsp;;:&nbsp;;:&nbsp;;
