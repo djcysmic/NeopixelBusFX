@@ -43,6 +43,8 @@ nfx sparkle color [backgroundcolor] [speed]
 
 nfx wipe color [dotcolor] [speed]
 
+nfx dualwipe [dotcolor] [speed]
+
 nfx fire [fps] [brightness] [cooling] [sparking]
 
 nfx faketv [startpixel] [endpixel]
@@ -89,7 +91,7 @@ Thank you to all developers
 #define SPEED_MAX 50
 #define ARRAYSIZE 300 //Max LED Count
 #define NEOPIXEL_LIB NeoPixelBrightnessBus // Neopixel library type
-#define FEATURE NeoGrbFeature	 //Color order
+#define FEATURE NeoGrbFeature	//NeoBrgFeature //Color order
 #define METHOD NeoEsp8266Uart800KbpsMethod //GPIO2 - use NeoEsp8266Dma800KbpsMethod for GPIO3(TX)
 
 #define  numPixels (sizeof(ftv_colors) / sizeof(ftv_colors[0]))
@@ -140,11 +142,11 @@ starttime[ARRAYSIZE],
 maxtime = 0;
 
 enum modetype {
-	Off, On, Fade, ColorFade, Rainbow, Kitt, Comet, Theatre, Scan, Dualscan, Twinkle, TwinkleFade, Sparkle, Fire, Wipe, FakeTV
+	Off, On, Fade, ColorFade, Rainbow, Kitt, Comet, Theatre, Scan, Dualscan, Twinkle, TwinkleFade, Sparkle, Fire, Wipe, Dualwipe, FakeTV
 };
 
 const char* modeName[] = {
-	"off", "on", "fade", "colorfade", "rainbow", "kitt", "comet", "theatre", "scan", "dualscan", "twinkle", "twinklefade", "sparkle", "fire", "wipe", "faketv"
+	"off", "on", "fade", "colorfade", "rainbow", "kitt", "comet", "theatre", "scan", "dualscan", "twinkle", "twinklefade", "sparkle", "fire", "wipe", "dualwipe", "faketv"
 };
 
 modetype mode,savemode,lastmode;
@@ -528,6 +530,23 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
 					: parseString(string, 5).toInt();
 				}
 
+				else if (subCommand == F("dualwipe")) {
+					mode = Dualwipe;
+
+					_counter_mode_step = 0;
+
+					hex2rgb(parseString(string, 3));
+					if (parseString(string, 4) != "") {
+						hex2rrggbb(parseString(string, 4));
+					} else {
+						hex2rrggbb("000000");
+					}
+
+					speed = (parseString(string, 5) == "")
+					? defaultspeed
+					: parseString(string, 5).toInt();
+				}
+
 				else if (subCommand == F("faketv")) {
 					mode = FakeTV;
 					_counter_mode_step = 0;
@@ -582,7 +601,8 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
 				&& subCommand != F("dualscan") && subCommand != F("twinkle")
 				&& subCommand != F("sparkle") && subCommand != F("fire")
 				&& subCommand != F("twinklefade") && subCommand != F("stop")
-				&& subCommand != F("wipe") && subCommand != F("colorfade")
+				&& subCommand != F("wipe") && subCommand != F("dualwipe")
+				&& subCommand != F("colorfade")
 				&& subCommand != F("statusrequest") && subCommand != F("faketv")) {
 					log = F("NeoPixelBus: unknown subcommand: ");
 					log += subCommand;
@@ -666,6 +686,10 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
 				wipe();
 				break;
 
+				case Dualwipe:
+				dualwipe();
+				break;
+
 				case FakeTV:
 				faketv();
 				break;
@@ -746,6 +770,35 @@ void wipe(void) {
 		if ( _counter_mode_step == pixelCount ) mode = On;
 		_counter_mode_step++;
 	}
+}
+
+void dualwipe(void) {
+ if (counter20ms % (SPEED_MAX / abs(speed)) == 0) {
+  if (speed > 0) {
+   int i = _counter_mode_step - pixelCount;
+   i = abs(i);
+   Plugin_124_pixels->SetPixelColor(_counter_mode_step, rrggbb);
+   Plugin_124_pixels->SetPixelColor(i, rgb);
+   if (_counter_mode_step > 0 ) {
+    Plugin_124_pixels->SetPixelColor(_counter_mode_step - 1, rgb);
+    Plugin_124_pixels->SetPixelColor(i - 1, rrggbb);
+   }
+  } else {
+   int i = (pixelCount / 2) - _counter_mode_step;
+   i = abs(i);
+   Plugin_124_pixels->SetPixelColor(_counter_mode_step + abs (pixelCount / 2), rrggbb);
+   Plugin_124_pixels->SetPixelColor(i, rgb);
+   if (_counter_mode_step > 0 ) {
+    Plugin_124_pixels->SetPixelColor(_counter_mode_step + abs (pixelCount / 2) - 1, rgb);
+    Plugin_124_pixels->SetPixelColor(i - 1, rrggbb);
+   }
+  }
+  if (_counter_mode_step >= pixelCount / 2) {
+   mode = On;
+   Plugin_124_pixels->SetPixelColor(_counter_mode_step - 1, rgb);
+  }
+  _counter_mode_step++;
+ }
 }
 
 void faketv(void) {
