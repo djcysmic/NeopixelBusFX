@@ -43,6 +43,8 @@ nfx sparkle <i>color</i> [backgroundcolor] [speed]<br>
 
 nfx wipe color [dotcolor] [speed]<br>
 
+nfx dualwipe color [dotcolor] [speed]<br>
+
 nfx fire [fps] [brightness] [cooling] [sparking]<br>
 
 nfx faketv [startpixel] [endpixel]<br>
