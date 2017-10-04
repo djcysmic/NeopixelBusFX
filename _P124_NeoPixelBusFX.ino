@@ -1198,6 +1198,8 @@ void NeoPixelSendStatus(byte eventSource) {
 	json += colorStr;
 	json += F("\",\n\"bgcolor\": \"");
 	json += backgroundcolorStr;
+	json += F("\",\n\"pixelcount\": \"");
+	json += pixelCount;
 	json += F("\"\n}\n");
 	SendStatus(eventSource, json); // send http response to controller (JSON format)
 }
