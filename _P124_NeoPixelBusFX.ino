@@ -622,7 +622,8 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
 				NeoPixelSendStatus(event->Source);
 			} // command neopixel
 
-			speed = ( speed == 0 || speed > SPEED_MAX || speed < -SPEED_MAX ) ? defaultspeed : speed; // avoid invalid values
+			if ( speed == 0 ) mode = On; // speed = 0 = stop mode
+			speed = ( speed > SPEED_MAX || speed < -SPEED_MAX ) ? defaultspeed : speed; // avoid invalid values
 			fadetime = (fadetime <= 0) ? 20 : fadetime;
 
 			break;
@@ -786,10 +787,10 @@ void dualwipe(void) {
   } else {
    int i = (pixelCount / 2) - _counter_mode_step;
    i = abs(i);
-   Plugin_124_pixels->SetPixelColor(_counter_mode_step + abs (pixelCount / 2), rrggbb);
+   Plugin_124_pixels->SetPixelColor(_counter_mode_step + (pixelCount / 2), rrggbb);
    Plugin_124_pixels->SetPixelColor(i, rgb);
    if (_counter_mode_step > 0 ) {
-    Plugin_124_pixels->SetPixelColor(_counter_mode_step + abs (pixelCount / 2) - 1, rgb);
+    Plugin_124_pixels->SetPixelColor(_counter_mode_step + (pixelCount / 2) - 1, rgb);
     Plugin_124_pixels->SetPixelColor(i - 1, rrggbb);
    }
   }
@@ -896,7 +897,7 @@ uint32_t Wheel(uint8_t pos) {
 // Larson Scanner K.I.T.T.
 void kitt(void) {
 
-	if (counter20ms % abs( SPEED_MAX / speed ) == 0)
+	if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0)
 	{
 		for(uint16_t i=0; i < pixelCount; i++) {
 			RgbColor px_rgb = Plugin_124_pixels->GetPixelColor(i);
@@ -927,7 +928,7 @@ void kitt(void) {
 //Firing comets from one end.
 void comet(void) {
 
-	if (counter20ms % abs( SPEED_MAX / speed ) == 0)
+	if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0)
 	{
 		for(uint16_t i=0; i < pixelCount; i++) {
 
@@ -973,7 +974,7 @@ void comet(void) {
 //Theatre lights
 void theatre(void) {
 
-	if (counter20ms % abs( SPEED_MAX / speed ) == 0 && speed != 0)
+	if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
 	{
 		if (speed > 0) {
 			Plugin_124_pixels->RotateLeft(1,0,(pixelCount/count)*count-1);
@@ -988,7 +989,7 @@ void theatre(void) {
 * Runs a single pixel back and forth.
 */
 void scan(void) {
-	if (counter20ms % abs( SPEED_MAX / speed ) == 0 && speed != 0)
+	if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
 	{
 		if(_counter_mode_step > (pixelCount*2) - 2) {
 			_counter_mode_step = 0;
@@ -1011,7 +1012,7 @@ void scan(void) {
 */
 void dualscan(void) {
 
-	if (counter20ms % abs( SPEED_MAX / speed ) == 0 && speed != 0) {
+	if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0) {
 		if(_counter_mode_step > (pixelCount*2) - 2) {
 			_counter_mode_step = 0;
 		}
@@ -1036,7 +1037,7 @@ void dualscan(void) {
 */
 void twinkle(void) {
 
-	if (counter20ms % abs( SPEED_MAX / speed ) == 0 && speed != 0)
+	if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
 	{
 		if(_counter_mode_step == 0) {
 			//Plugin_124_pixels->ClearTo(rrggbb);
@@ -1058,7 +1059,7 @@ void twinkle(void) {
 */
 void twinklefade(void) {
 
-	if (counter20ms % abs( SPEED_MAX / speed ) == 0 && speed != 0)
+	if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
 	{
 		for(uint16_t i=0; i < pixelCount; i++) {
 
@@ -1087,7 +1088,7 @@ void twinklefade(void) {
 */
 void sparkle(void) {
 
-	if (counter20ms % abs( SPEED_MAX / speed ) == 0 && speed != 0)
+	if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
 	{
 		//Plugin_124_pixels->ClearTo(rrggbb);
 		for (int i = 0; i < pixelCount; i++) Plugin_124_pixels->SetPixelColor(i,rrggbb);
