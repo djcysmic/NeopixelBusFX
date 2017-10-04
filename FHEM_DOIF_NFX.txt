@@ -56,7 +56,7 @@ DOELSEIF ([$SELF:effect] eq "dualwipeout") (\
 )\
 ## cmd_15: Twinkle\
 DOELSEIF ([$SELF:effect] eq "twinkle") (\
-	set [$SELF:device] nfx theatre [$SELF:color_1] [$SELF:color_2] [$SELF:speed]\
+	set [$SELF:device] nfx twinkle [$SELF:color_1] [$SELF:color_2] [$SELF:speed]\
 )\
 ## cmd_16: Comet\
 DOELSEIF ([$SELF:effect] eq "comet") (\
