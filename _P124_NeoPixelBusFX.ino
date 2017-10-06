@@ -774,32 +774,32 @@ void wipe(void) {
 }
 
 void dualwipe(void) {
- if (counter20ms % (SPEED_MAX / abs(speed)) == 0) {
-  if (speed > 0) {
-   int i = _counter_mode_step - pixelCount;
-   i = abs(i);
-   Plugin_124_pixels->SetPixelColor(_counter_mode_step, rrggbb);
-   Plugin_124_pixels->SetPixelColor(i, rgb);
-   if (_counter_mode_step > 0 ) {
-    Plugin_124_pixels->SetPixelColor(_counter_mode_step - 1, rgb);
-    Plugin_124_pixels->SetPixelColor(i - 1, rrggbb);
-   }
-  } else {
-   int i = (pixelCount / 2) - _counter_mode_step;
-   i = abs(i);
-   Plugin_124_pixels->SetPixelColor(_counter_mode_step + (pixelCount / 2), rrggbb);
-   Plugin_124_pixels->SetPixelColor(i, rgb);
-   if (_counter_mode_step > 0 ) {
-    Plugin_124_pixels->SetPixelColor(_counter_mode_step + (pixelCount / 2) - 1, rgb);
-    Plugin_124_pixels->SetPixelColor(i - 1, rrggbb);
-   }
-  }
-  if (_counter_mode_step >= pixelCount / 2) {
-   mode = On;
-   Plugin_124_pixels->SetPixelColor(_counter_mode_step - 1, rgb);
-  }
-  _counter_mode_step++;
- }
+	if (counter20ms % (SPEED_MAX / abs(speed)) == 0) {
+		if (speed > 0) {
+			int i = _counter_mode_step - pixelCount;
+			i = abs(i);
+			Plugin_124_pixels->SetPixelColor(_counter_mode_step, rrggbb);
+			Plugin_124_pixels->SetPixelColor(i, rgb);
+			if (_counter_mode_step > 0 ) {
+				Plugin_124_pixels->SetPixelColor(_counter_mode_step - 1, rgb);
+				Plugin_124_pixels->SetPixelColor(i - 1, rrggbb);
+			}
+		} else {
+			int i = (pixelCount / 2) - _counter_mode_step;
+			i = abs(i);
+			Plugin_124_pixels->SetPixelColor(_counter_mode_step + (pixelCount / 2), rrggbb);
+			Plugin_124_pixels->SetPixelColor(i, rgb);
+			if (_counter_mode_step > 0 ) {
+				Plugin_124_pixels->SetPixelColor(_counter_mode_step + (pixelCount / 2) - 1, rgb);
+				Plugin_124_pixels->SetPixelColor(i - 1, rrggbb);
+			}
+		}
+		if (_counter_mode_step >= pixelCount / 2) {
+			mode = On;
+			Plugin_124_pixels->SetPixelColor(_counter_mode_step - 1, rgb);
+		}
+		_counter_mode_step++;
+	}
 }
 
 void faketv(void) {
