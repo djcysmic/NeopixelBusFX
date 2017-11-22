@@ -49,18 +49,21 @@ nfx fire [fps] [brightness] [cooling] [sparking]
 
 nfx faketv [startpixel] [endpixel]
 
+nfx simpleclock [bigtickcolor] [smalltickcolor] [hourcolor] [minutecolor] [secondcolor]
+
+
 nfx stop
-	stops the effect
+  stops the effect
 
 nfx statusrequest
-	sends status
+  sends status
 
 nfx fadetime
 nfx fadedelay
 nfx speed
 nfx count
 nfx bgcolor
-	sets default parameter
+  sets default parameter
 
 Use:
 
@@ -86,12 +89,12 @@ Thank you to all developers
 
 #include <NeoPixelBrightnessBus.h>
 #include <FastLED.h> //for math operations in FireFX
-#include <faketv.h> //color pattern for FakeTV
+#include "faketv.h" //color pattern for FakeTV
 
 #define SPEED_MAX 50
 #define ARRAYSIZE 300 //Max LED Count
 #define NEOPIXEL_LIB NeoPixelBrightnessBus // Neopixel library type
-#define FEATURE NeoGrbFeature	//NeoBrgFeature //Color order
+#define FEATURE NeoGrbFeature //NeoBrgFeature //NeoRgbFeature //Color order
 #define METHOD NeoEsp8266Uart800KbpsMethod //GPIO2 - use NeoEsp8266Dma800KbpsMethod for GPIO3(TX)
 
 #define  numPixels (sizeof(ftv_colors) / sizeof(ftv_colors[0]))
@@ -112,18 +115,23 @@ uint16_t ftv_pr = 0, ftv_pg = 0, ftv_pb = 0; // Prev R, G, B;
 
 RgbColor rgb_target[ARRAYSIZE],
 rgb_old[ARRAYSIZE],
-rgb, rrggbb;
+rgb, rrggbb,
+rgb_tick_b = HtmlColor(0x505050),
+rgb_tick_s = HtmlColor(0x101010),
+rgb_m = HtmlColor(0x00FF00),
+rgb_h = HtmlColor(0x0000FF),
+rgb_s = HtmlColor(0xFF0000);
 
 int16_t pixelCount = ARRAYSIZE,
 fadedelay = 20;
 
-int8_t	defaultspeed = 25,
+int8_t  defaultspeed = 25,
 rainbowspeed = 1,
 speed = 25,
 fps = 50,
 count = 1;
 
-uint32_t	_counter_mode_step = 0,
+uint32_t  _counter_mode_step = 0,
 fadetime = 1000,
 ftv_holdTime,
 pixelNum;
@@ -142,11 +150,11 @@ starttime[ARRAYSIZE],
 maxtime = 0;
 
 enum modetype {
-	Off, On, Fade, ColorFade, Rainbow, Kitt, Comet, Theatre, Scan, Dualscan, Twinkle, TwinkleFade, Sparkle, Fire, Wipe, Dualwipe, FakeTV
+  Off, On, Fade, ColorFade, Rainbow, Kitt, Comet, Theatre, Scan, Dualscan, Twinkle, TwinkleFade, Sparkle, Fire, Wipe, Dualwipe, FakeTV, SimpleClock
 };
 
 const char* modeName[] = {
-	"off", "on", "fade", "colorfade", "rainbow", "kitt", "comet", "theatre", "scan", "dualscan", "twinkle", "twinklefade", "sparkle", "fire", "wipe", "dualwipe", "faketv"
+  "off", "on", "fade", "colorfade", "rainbow", "kitt", "comet", "theatre", "scan", "dualscan", "twinkle", "twinklefade", "sparkle", "fire", "wipe", "dualwipe", "faketv", "simpleclock"
 };
 
 modetype mode,savemode,lastmode;
@@ -161,717 +169,753 @@ modetype mode,savemode,lastmode;
 
 boolean Plugin_124(byte function, struct EventStruct *event, String& string)
 {
-	boolean success = false;
-
-	switch (function)
-	{
-
-		case PLUGIN_DEVICE_ADD:
-		{
-			Device[++deviceCount].Number = PLUGIN_ID_124;
-			Device[deviceCount].Type = DEVICE_TYPE_DUMMY;
-			Device[deviceCount].VType = SENSOR_TYPE_QUAD;
-			Device[deviceCount].Custom = true;
-			Device[deviceCount].Ports = 0;
-			Device[deviceCount].PullUpOption = false;
-			Device[deviceCount].InverseLogicOption = false;
-			Device[deviceCount].FormulaOption = false;
-			Device[deviceCount].ValueCount = 4;
-			Device[deviceCount].SendDataOption = true;
-			Device[deviceCount].TimerOption = true;
-			Device[deviceCount].TimerOptional = true;
-			Device[deviceCount].GlobalSyncOption = true;
-			Device[deviceCount].DecimalsOnly = false;
-			break;
-		}
-
-		case PLUGIN_GET_DEVICENAME:
-		{
-			string = F(PLUGIN_NAME_124);
-			break;
-		}
-
-		case PLUGIN_GET_DEVICEVALUENAMES:
-		{
-			strcpy_P(ExtraTaskSettings.TaskDeviceValueNames[0], PSTR(PLUGIN_VALUENAME1_124));
-			strcpy_P(ExtraTaskSettings.TaskDeviceValueNames[1], PSTR(PLUGIN_VALUENAME2_124));
-			strcpy_P(ExtraTaskSettings.TaskDeviceValueNames[2], PSTR(PLUGIN_VALUENAME3_124));
-			strcpy_P(ExtraTaskSettings.TaskDeviceValueNames[3], PSTR(PLUGIN_VALUENAME4_124));
-			break;
-		}
-
-		case PLUGIN_WEBFORM_LOAD:
-		{
-			addFormNumericBox(string, F("Led Count"), F("plugin_124_leds"), Settings.TaskDevicePluginConfig[event->TaskIndex][0],1 ,999);
-			string += F("<br><br><span style=\"color:red\">Please connect stripe to GPIO2!</span>");
-
-			success = true;
-			break;
-		}
-
-		case PLUGIN_WEBFORM_SAVE:
-		{
-			Settings.TaskDevicePluginConfig[event->TaskIndex][0] = getFormItemInt(F("plugin_124_leds"));
-			//Settings.TaskDevicePin1[event->TaskIndex] = getFormItemInt(F("taskdevicepin1"));
-
-			success = true;
-			break;
-		}
-
-		case PLUGIN_INIT:
-		{
-			if (!Plugin_124_pixels)
-			{
-				Plugin_124_pixels = new NEOPIXEL_LIB<FEATURE, METHOD>(Settings.TaskDevicePluginConfig[event->TaskIndex][0]);
-				Plugin_124_pixels->Begin(); // This initializes the NeoPixelBus library.
-			}
-
-			pixelCount = Settings.TaskDevicePluginConfig[event->TaskIndex][0];
-			success = true;
-			break;
-		}
-
-		case PLUGIN_READ:                 // ------------------------------------------->
-			{
-				// there is no need to read them, just use current values
-				UserVar[event->BaseVarIndex] = mode;
-				UserVar[event->BaseVarIndex + 1] = savemode;
-				UserVar[event->BaseVarIndex + 2] = fadetime;
-				UserVar[event->BaseVarIndex + 3] = fadedelay;
-				String log;
-				log = F("Lights: mode: ");
-				log += modeName[mode];
-				log += F(" lastmode: ");
-				log += modeName[savemode];
-				log += F(" fadetime: ");
-				log += (int)UserVar[event->BaseVarIndex + 2];
-				log += F(" fadedelay: ");
-				log += (int)UserVar[event->BaseVarIndex + 3];
-				addLog(LOG_LEVEL_INFO, log);
-
-				success = true;
-				break;
-			}
-
-		case PLUGIN_WRITE:
-		{
-
-			String log = "";
-			String command = parseString(string, 1);
-
-			if (command == F("neopixelfx") || command == F("nfx")) {
-				success = true;
-				String subCommand = parseString(string, 2);
+  boolean success = false;
+
+  switch (function)
+  {
+
+    case PLUGIN_DEVICE_ADD:
+    {
+      Device[++deviceCount].Number = PLUGIN_ID_124;
+      Device[deviceCount].Type = DEVICE_TYPE_DUMMY;
+      Device[deviceCount].VType = SENSOR_TYPE_QUAD;
+      Device[deviceCount].Custom = true;
+      Device[deviceCount].Ports = 0;
+      Device[deviceCount].PullUpOption = false;
+      Device[deviceCount].InverseLogicOption = false;
+      Device[deviceCount].FormulaOption = false;
+      Device[deviceCount].ValueCount = 4;
+      Device[deviceCount].SendDataOption = true;
+      Device[deviceCount].TimerOption = true;
+      Device[deviceCount].TimerOptional = true;
+      Device[deviceCount].GlobalSyncOption = true;
+      Device[deviceCount].DecimalsOnly = false;
+      break;
+    }
+
+    case PLUGIN_GET_DEVICENAME:
+    {
+      string = F(PLUGIN_NAME_124);
+      break;
+    }
+
+    case PLUGIN_GET_DEVICEVALUENAMES:
+    {
+      strcpy_P(ExtraTaskSettings.TaskDeviceValueNames[0], PSTR(PLUGIN_VALUENAME1_124));
+      strcpy_P(ExtraTaskSettings.TaskDeviceValueNames[1], PSTR(PLUGIN_VALUENAME2_124));
+      strcpy_P(ExtraTaskSettings.TaskDeviceValueNames[2], PSTR(PLUGIN_VALUENAME3_124));
+      strcpy_P(ExtraTaskSettings.TaskDeviceValueNames[3], PSTR(PLUGIN_VALUENAME4_124));
+      break;
+    }
+
+    case PLUGIN_WEBFORM_LOAD:
+    {
+      addFormNumericBox(string, F("Led Count"), F("plugin_124_leds"), Settings.TaskDevicePluginConfig[event->TaskIndex][0],1 ,999);
+      string += F("<br><br><span style=\"color:red\">Please connect stripe to GPIO2!</span>");
+
+      success = true;
+      break;
+    }
+
+    case PLUGIN_WEBFORM_SAVE:
+    {
+      Settings.TaskDevicePluginConfig[event->TaskIndex][0] = getFormItemInt(F("plugin_124_leds"));
+      //Settings.TaskDevicePin1[event->TaskIndex] = getFormItemInt(F("taskdevicepin1"));
+
+      success = true;
+      break;
+    }
+
+    case PLUGIN_INIT:
+    {
+      if (!Plugin_124_pixels)
+      {
+        Plugin_124_pixels = new NEOPIXEL_LIB<FEATURE, METHOD>(Settings.TaskDevicePluginConfig[event->TaskIndex][0]);
+        Plugin_124_pixels->Begin(); // This initializes the NeoPixelBus library.
+      }
+
+      pixelCount = Settings.TaskDevicePluginConfig[event->TaskIndex][0];
+      success = true;
+      break;
+    }
+
+    case PLUGIN_READ:                 // ------------------------------------------->
+      {
+        // there is no need to read them, just use current values
+        UserVar[event->BaseVarIndex] = mode;
+        UserVar[event->BaseVarIndex + 1] = savemode;
+        UserVar[event->BaseVarIndex + 2] = fadetime;
+        UserVar[event->BaseVarIndex + 3] = fadedelay;
+        String log;
+        log = F("Lights: mode: ");
+        log += modeName[mode];
+        log += F(" lastmode: ");
+        log += modeName[savemode];
+        log += F(" fadetime: ");
+        log += (int)UserVar[event->BaseVarIndex + 2];
+        log += F(" fadedelay: ");
+        log += (int)UserVar[event->BaseVarIndex + 3];
+        addLog(LOG_LEVEL_INFO, log);
+
+        success = true;
+        break;
+      }
+
+    case PLUGIN_WRITE:
+    {
+
+      String log = "";
+      String command = parseString(string, 1);
+
+      if (command == F("neopixelfx") || command == F("nfx")) {
+        success = true;
+        String subCommand = parseString(string, 2);
+
+        if (subCommand == F("fadetime")) {
+          fadetime = parseString(string, 3).toInt();
+        }
 
-				if (subCommand == F("fadetime")) {
-					fadetime = parseString(string, 3).toInt();
-				}
+        else if (subCommand == F("fadedelay")) {
+          fadedelay = parseString(string, 3).toInt();
+        }
+
+        else if (subCommand == F("speed")) {
+          defaultspeed = parseString(string, 3).toInt();
+          speed = defaultspeed;
+        }
 
-				else if (subCommand == F("fadedelay")) {
-					fadedelay = parseString(string, 3).toInt();
-				}
+        else if (subCommand == F("bgcolor")) {
+          hex2rrggbb(parseString(string, 3));
+        }
 
-				else if (subCommand == F("speed")) {
-					defaultspeed = parseString(string, 3).toInt();
-					speed = defaultspeed;
-				}
+        else if (subCommand == F("count")) {
+          count = parseString(string, 3).toInt();
+        }
 
-				else if (subCommand == F("bgcolor")) {
-					hex2rrggbb(parseString(string, 3));
-				}
+        else if (subCommand == F("on") || subCommand == F("off")) {
 
-				else if (subCommand == F("count")) {
-					count = parseString(string, 3).toInt();
-				}
+          fadetime = 1000;
+          fadedelay = 0;
 
-				else if (subCommand == F("on") || subCommand == F("off")) {
+          fadetime = (parseString(string, 3) == "")
+          ? fadetime
+          : parseString(string, 3).toInt();
+          fadedelay = (parseString(string, 4) == "")
+          ? fadedelay
+          : parseString(string, 4).toInt();
 
-					fadetime = 1000;
-					fadedelay = 0;
+          for (int pixel = 0; pixel < pixelCount; pixel++) {
 
-					fadetime = (parseString(string, 3) == "")
-					? fadetime
-					: parseString(string, 3).toInt();
-					fadedelay = (parseString(string, 4) == "")
-					? fadedelay
-					: parseString(string, 4).toInt();
+            r_pixel = (fadedelay < 0)
+            ? pixelCount - pixel - 1
+            : pixel;
 
-					for (int pixel = 0; pixel < pixelCount; pixel++) {
+            starttime[r_pixel] = counter20ms + (pixel * abs(fadedelay) / 20);
 
-						r_pixel = (fadedelay < 0)
-						? pixelCount - pixel - 1
-						: pixel;
+            if ( subCommand == F("on") && mode == Off ) {             // switch on
+              rgb_target[pixel] = rgb_old[pixel];
+              rgb_old[pixel] = Plugin_124_pixels->GetPixelColor(pixel);
+            } else if ( subCommand == F("off") ) {    // switch off
+              rgb_old[pixel] = Plugin_124_pixels->GetPixelColor(pixel);
+              rgb_target[pixel] = RgbColor(0,0,0);
+            }
+          }
 
-						starttime[r_pixel] = counter20ms + (pixel * abs(fadedelay) / 20);
+          if ( ( subCommand == F("on") ) && mode == Off ) { // switch on
+            mode = ( savemode == On ) ? Fade : savemode;
+          } else if ( subCommand == F("off") ) { // switch off
+            savemode = mode;
+            mode = Fade;
+          }
 
-						if ( subCommand == F("on") && mode == Off ) { 						// switch on
-							rgb_target[pixel] = rgb_old[pixel];
-							rgb_old[pixel] = Plugin_124_pixels->GetPixelColor(pixel);
-						} else if ( subCommand == F("off") ) { 		// switch off
-							rgb_old[pixel] = Plugin_124_pixels->GetPixelColor(pixel);
-							rgb_target[pixel] = RgbColor(0,0,0);
-						}
-					}
+          maxtime = starttime[r_pixel] + (fadetime / 20);
+        }
 
-					if ( ( subCommand == F("on") ) && mode == Off ) { // switch on
-						mode = ( savemode == On ) ? Fade : savemode;
-					} else if ( subCommand == F("off") ) { // switch off
-						savemode = mode;
-						mode = Fade;
-					}
+        else if (subCommand == F("dim")) {
+          Plugin_124_pixels->SetBrightness(parseString(string, 3).toInt());
+        }
 
-					maxtime = starttime[r_pixel] + (fadetime / 20);
-				}
+        else if (subCommand == F("line")) {
+          mode = On;
 
-				else if (subCommand == F("dim")) {
-					Plugin_124_pixels->SetBrightness(parseString(string, 3).toInt());
-				}
+          hex2rgb(parseString(string, 5));
+// changed SMY
+          for (int i = 0; i < ( parseString(string, 4).toInt()-parseString(string, 3).toInt() + pixelCount) % pixelCount ; i++){
+            Plugin_124_pixels->SetPixelColor((i + parseString(string, 3).toInt() - 1) % pixelCount, rgb);
+          }
+        }
 
-				else if (subCommand == F("line")) {
-					mode = On;
+        else if (subCommand == F("tick")) {
+          mode = On;
 
-					hex2rgb(parseString(string, 5));
+          hex2rgb(parseString(string, 4));
 
-					for (int i = parseString(string, 3).toInt() - 1; i < parseString(string, 4).toInt(); i++){
-						Plugin_124_pixels->SetPixelColor(i, rgb);
-					}
-				}
+//          for (int i = 0; i < pixelCount ; i = i + (pixelCount / parseString(string, 3).toInt())) {
+          for (int i = 0; i < parseString(string, 3).toInt(); i++) {
+            Plugin_124_pixels->SetPixelColor(i * pixelCount / parseString(string, 3).toInt(), rgb);
+          }
+        }
 
-				else if (subCommand == F("one")) {
-					mode = On;
+        else if (subCommand == F("one")) {
+          mode = On;
 
-					uint8_t pixnum = parseString(string, 3).toInt() - 1;
-					hex2rgb(parseString(string, 4));
+          uint8_t pixnum = parseString(string, 3).toInt() - 1;
+          hex2rgb(parseString(string, 4));
 
-					Plugin_124_pixels->SetPixelColor(pixnum, rgb);
-				}
+          Plugin_124_pixels->SetPixelColor(pixnum, rgb);
+        }
 
-				else if (subCommand == F("fade") || subCommand == F("all") || subCommand == F("rgb")) {
-					mode = Fade;
+        else if (subCommand == F("fade") || subCommand == F("all") || subCommand == F("rgb")) {
+          mode = Fade;
 
-					if (subCommand == F("all") || subCommand == F("rgb")) {
-						fadedelay = 0;
-					}
+          if (subCommand == F("all") || subCommand == F("rgb")) {
+            fadedelay = 0;
+          }
 
-					hex2rgb_pixel(parseString(string, 3));
+          hex2rgb_pixel(parseString(string, 3));
 
-					fadetime = (parseString(string, 4) == "")
-					? fadetime
-					: parseString(string, 4).toInt();
-					fadedelay = (parseString(string, 5) == "")
-					? fadedelay
-					: parseString(string, 5).toInt();
+          fadetime = (parseString(string, 4) == "")
+          ? fadetime
+          : parseString(string, 4).toInt();
+          fadedelay = (parseString(string, 5) == "")
+          ? fadedelay
+          : parseString(string, 5).toInt();
 
-					uint8_t r_pixel;
+          uint8_t r_pixel;
 
-					for (int pixel = 0; pixel < pixelCount; pixel++){
+          for (int pixel = 0; pixel < pixelCount; pixel++){
 
-						r_pixel = (fadedelay < 0)
-						? pixelCount - pixel - 1
-						: pixel;
+            r_pixel = (fadedelay < 0)
+            ? pixelCount - pixel - 1
+            : pixel;
 
-						starttime[r_pixel] = counter20ms + (pixel * abs(fadedelay) / 20);
+            starttime[r_pixel] = counter20ms + (pixel * abs(fadedelay) / 20);
 
-						rgb_old[pixel] = Plugin_124_pixels->GetPixelColor(pixel);
-					}
-					maxtime = starttime[r_pixel] + (fadetime / 20);
-				}
+            rgb_old[pixel] = Plugin_124_pixels->GetPixelColor(pixel);
+          }
+          maxtime = starttime[r_pixel] + (fadetime / 20);
+        }
 
-				else if (subCommand == F("rainbow")) {
-					mode = Rainbow;
+        else if (subCommand == F("rainbow")) {
+          mode = Rainbow;
 
-					rainbowspeed = (parseString(string, 3) == "")
-					? 1
-					: parseString(string, 3).toInt();
-				}
+          rainbowspeed = (parseString(string, 3) == "")
+          ? 1
+          : parseString(string, 3).toInt();
+        }
 
-				else if (subCommand == F("colorfade")) {
-					mode = ColorFade;
+        else if (subCommand == F("colorfade")) {
+          mode = ColorFade;
 
-					hex2rgb(parseString(string, 3));
-					if (parseString(string, 4) != "") hex2rrggbb(parseString(string, 4));
+          hex2rgb(parseString(string, 3));
+          if (parseString(string, 4) != "") hex2rrggbb(parseString(string, 4));
 
-					startpixel = (parseString(string, 5) == "")
-					? 0
-					: parseString(string, 5).toInt() - 1;
-					endpixel = (parseString(string, 6) == "")
-					? pixelCount
-					: parseString(string, 6).toInt();
-				}
+          startpixel = (parseString(string, 5) == "")
+          ? 0
+          : parseString(string, 5).toInt() - 1;
+          endpixel = (parseString(string, 6) == "")
+          ? pixelCount
+          : parseString(string, 6).toInt();
+        }
 
-				else if (subCommand == F("kitt")) {
-					mode = Kitt;
+        else if (subCommand == F("kitt")) {
+          mode = Kitt;
 
-					_counter_mode_step = 0;
+          _counter_mode_step = 0;
 
-					hex2rgb(parseString(string, 3));
+          hex2rgb(parseString(string, 3));
 
-					speed = (parseString(string, 4) == "")
-					? defaultspeed
-					: parseString(string, 4).toInt();
-				}
+          speed = (parseString(string, 4) == "")
+          ? defaultspeed
+          : parseString(string, 4).toInt();
+        }
 
-				else if (subCommand == F("comet")) {
-					mode = Comet;
+        else if (subCommand == F("comet")) {
+          mode = Comet;
 
-					_counter_mode_step = 0;
+          _counter_mode_step = 0;
 
-					hex2rgb(parseString(string, 3));
+          hex2rgb(parseString(string, 3));
 
-					speed = (parseString(string, 4) == "")
-					? defaultspeed
-					: parseString(string, 4).toInt();
-				}
+          speed = (parseString(string, 4) == "")
+          ? defaultspeed
+          : parseString(string, 4).toInt();
+        }
 
-				else if (subCommand == F("theatre")) {
-					mode = Theatre;
+        else if (subCommand == F("theatre")) {
+          mode = Theatre;
 
-					hex2rgb(parseString(string, 3));
-					if (parseString(string, 4) != "") hex2rrggbb(parseString(string, 4));
+          hex2rgb(parseString(string, 3));
+          if (parseString(string, 4) != "") hex2rrggbb(parseString(string, 4));
 
-					count = (parseString(string, 5) == "")
-					? count
-					: parseString(string, 5).toInt();
+          count = (parseString(string, 5) == "")
+          ? count
+          : parseString(string, 5).toInt();
 
-					speed = (parseString(string, 6) == "")
-					? defaultspeed
-					: parseString(string, 6).toInt();
+          speed = (parseString(string, 6) == "")
+          ? defaultspeed
+          : parseString(string, 6).toInt();
 
-					for ( int i = 0; i < pixelCount; i++ ) {
-						if ((i / count) % 2 == 0) {
-							Plugin_124_pixels->SetPixelColor(i, rgb);
-						} else {
-							Plugin_124_pixels->SetPixelColor(i, rrggbb);
-						}
-					}
-				}
+          for ( int i = 0; i < pixelCount; i++ ) {
+            if ((i / count) % 2 == 0) {
+              Plugin_124_pixels->SetPixelColor(i, rgb);
+            } else {
+              Plugin_124_pixels->SetPixelColor(i, rrggbb);
+            }
+          }
+        }
 
-				else if (subCommand == F("scan")) {
-					mode = Scan;
+        else if (subCommand == F("scan")) {
+          mode = Scan;
 
-					_counter_mode_step = 0;
+          _counter_mode_step = 0;
 
-					hex2rgb(parseString(string, 3));
-					if (parseString(string, 4) != "") hex2rrggbb(parseString(string, 4));
+          hex2rgb(parseString(string, 3));
+          if (parseString(string, 4) != "") hex2rrggbb(parseString(string, 4));
 
-					speed = (parseString(string, 5) == "")
-					? defaultspeed
-					: parseString(string, 5).toInt();
-				}
+          speed = (parseString(string, 5) == "")
+          ? defaultspeed
+          : parseString(string, 5).toInt();
+        }
 
-				else if (subCommand == F("dualscan")) {
-					mode = Dualscan;
+        else if (subCommand == F("dualscan")) {
+          mode = Dualscan;
 
-					_counter_mode_step = 0;
+          _counter_mode_step = 0;
 
-					hex2rgb(parseString(string, 3));
-					if (parseString(string, 4) != "") hex2rrggbb(parseString(string, 4));
+          hex2rgb(parseString(string, 3));
+          if (parseString(string, 4) != "") hex2rrggbb(parseString(string, 4));
 
-					speed = (parseString(string, 5) == "")
-					? defaultspeed
-					: parseString(string, 5).toInt();
-				}
+          speed = (parseString(string, 5) == "")
+          ? defaultspeed
+          : parseString(string, 5).toInt();
+        }
 
-				else if (subCommand == F("twinkle")) {
-					mode = Twinkle;
+        else if (subCommand == F("twinkle")) {
+          mode = Twinkle;
 
-					_counter_mode_step = 0;
+          _counter_mode_step = 0;
 
-					hex2rgb(parseString(string, 3));
-					if (parseString(string, 4) != "") hex2rrggbb(parseString(string, 4));
+          hex2rgb(parseString(string, 3));
+          if (parseString(string, 4) != "") hex2rrggbb(parseString(string, 4));
 
-					speed = (parseString(string, 5) == "")
-					? defaultspeed
-					: parseString(string, 5).toInt();
-				}
+          speed = (parseString(string, 5) == "")
+          ? defaultspeed
+          : parseString(string, 5).toInt();
+        }
 
-				else if (subCommand == F("twinklefade")) {
-					mode = TwinkleFade;
+        else if (subCommand == F("twinklefade")) {
+          mode = TwinkleFade;
 
-					hex2rgb(parseString(string, 3));
+          hex2rgb(parseString(string, 3));
 
-					count = (parseString(string, 4) == "")
-					? count
-					: parseString(string, 4).toInt();
+          count = (parseString(string, 4) == "")
+          ? count
+          : parseString(string, 4).toInt();
 
-					speed = (parseString(string, 5) == "")
-					? defaultspeed
-					: parseString(string, 5).toInt();
+          speed = (parseString(string, 5) == "")
+          ? defaultspeed
+          : parseString(string, 5).toInt();
 
-				}
+        }
 
-				else if (subCommand == F("sparkle")) {
-					mode = Sparkle;
+        else if (subCommand == F("sparkle")) {
+          mode = Sparkle;
 
-					_counter_mode_step = 0;
+          _counter_mode_step = 0;
 
-					hex2rgb(parseString(string, 3));
-					hex2rrggbb(parseString(string, 4));
+          hex2rgb(parseString(string, 3));
+          hex2rrggbb(parseString(string, 4));
 
-					speed = (parseString(string, 5) == "")
-					? defaultspeed
-					: parseString(string, 5).toInt();
-				}
+          speed = (parseString(string, 5) == "")
+          ? defaultspeed
+          : parseString(string, 5).toInt();
+        }
 
-				else if (subCommand == F("wipe")) {
-					mode = Wipe;
-
-					_counter_mode_step = 0;
-
-					hex2rgb(parseString(string, 3));
-					if (parseString(string, 4) != "") {
-						hex2rrggbb(parseString(string, 4));
-					} else {
-						hex2rrggbb("000000");
-					}
-
-					speed = (parseString(string, 5) == "")
-					? defaultspeed
-					: parseString(string, 5).toInt();
-				}
-
-				else if (subCommand == F("dualwipe")) {
-					mode = Dualwipe;
-
-					_counter_mode_step = 0;
-
-					hex2rgb(parseString(string, 3));
-					if (parseString(string, 4) != "") {
-						hex2rrggbb(parseString(string, 4));
-					} else {
-						hex2rrggbb("000000");
-					}
-
-					speed = (parseString(string, 5) == "")
-					? defaultspeed
-					: parseString(string, 5).toInt();
-				}
-
-				else if (subCommand == F("faketv")) {
-					mode = FakeTV;
-					_counter_mode_step = 0;
-
-					randomSeed(analogRead(A0));
-					pixelNum = random(numPixels); // Begin at random point
-
-					startpixel = (parseString(string, 3) == "")
-					? 0
-					: parseString(string, 3).toInt() - 1;
-					endpixel = (parseString(string, 4) == "")
-					? pixelCount
-					: parseString(string, 4).toInt();
-				}
-
-				else if (subCommand == F("fire")) {
-					mode = Fire;
-
-					fps = (parseString(string, 3) == "")
-					? fps
-					: parseString(string, 3).toInt();
-
-					fps = (fps == 0 || fps > 50) ? 50	: fps;
-
-					brightness = (parseString(string, 4) == "")
-					? brightness
-					: parseString(string, 4).toFloat();
-					cooling = (parseString(string, 5) == "")
-					? cooling
-					: parseString(string, 5).toFloat();
-					sparking = (parseString(string, 6) == "")
-					? sparking
-					: parseString(string, 6).toFloat();
-				}
-
-				else if (subCommand == F("stop")) {
-					mode = On;
-				}
-
-				else if (subCommand == F("statusrequest")) {
-				}
-
-				else if ( subCommand != F("all") && subCommand != F("line")
-				&& subCommand != F("one") && subCommand != F("fade")
-				&& subCommand != F("dim") && subCommand != F("fadetime")
-				&& subCommand != F("speed") && subCommand != F("fadedelay")
-				&& subCommand != F("count") && subCommand != F("bgcolor")
-				&& subCommand != F("on") && subCommand != F("off")
-				&& subCommand != F("rgb") && subCommand != F("rainbow")
-				&& subCommand != F("kitt") && subCommand != F("comet")
-				&& subCommand != F("theatre") && subCommand != F("scan")
-				&& subCommand != F("dualscan") && subCommand != F("twinkle")
-				&& subCommand != F("sparkle") && subCommand != F("fire")
-				&& subCommand != F("twinklefade") && subCommand != F("stop")
-				&& subCommand != F("wipe") && subCommand != F("dualwipe")
-				&& subCommand != F("colorfade")
-				&& subCommand != F("statusrequest") && subCommand != F("faketv")) {
-					log = F("NeoPixelBus: unknown subcommand: ");
-					log += subCommand;
-					addLog(LOG_LEVEL_INFO, log);
-
-					String json;
-					printToWebJSON = true;
-					json += F("{\n");
-					json += F("\"plugin\": \"124\",\n");
-					json += F("\"log\": \"");
-					json += F("NeoPixelBus: unknown command: ");
-					json += subCommand;
-					json += F("\"\n");
-					json += F("}\n");
-					SendStatus(event->Source, json); // send http response to controller (JSON format)
-				}
-				NeoPixelSendStatus(event->Source);
-			} // command neopixel
-
-			if ( speed == 0 ) mode = On; // speed = 0 = stop mode
-			speed = ( speed > SPEED_MAX || speed < -SPEED_MAX ) ? defaultspeed : speed; // avoid invalid values
-			fadetime = (fadetime <= 0) ? 20 : fadetime;
-
-			break;
-		}
-
-		case PLUGIN_FIFTY_PER_SECOND:
-		{
-			counter20ms++;
-			lastmode = mode;
-
-			switch (mode) {
-				case Fade:
-				fade();
-				break;
-
-				case ColorFade:
-				colorfade();
-				break;
-
-				case Rainbow:
-				rainbow();
-				break;
-
-				case Kitt:
-				kitt();
-				break;
-
-				case Comet:
-				comet();
-				break;
-
-				case Theatre:
-				theatre();
-				break;
-
-				case Scan:
-				scan();
-				break;
-
-				case Dualscan:
-				dualscan();
-				break;
-
-				case Twinkle:
-				twinkle();
-				break;
-
-				case TwinkleFade:
-				twinklefade();
-				break;
-
-				case Sparkle:
-				sparkle();
-				break;
-
-				case Fire:
-				fire();
-				break;
-
-				case Wipe:
-				wipe();
-				break;
-
-				case Dualwipe:
-				dualwipe();
-				break;
-
-				case FakeTV:
-				faketv();
-				break;
-
-				default:
-				break;
-			} // switch mode
-
-			Plugin_124_pixels->Show();
-
-			if (mode != lastmode) {
-				String log = "";
-				log = F("NeoPixelBus: Mode Change: ");
-				log += modeName[mode];
-				addLog(LOG_LEVEL_INFO, log);
-				NeoPixelSendStatus(event->Source);
-			}
-			success = true;
-			break;
-		}
-
-		break;
-
-
-	}
-	return success;
+        else if (subCommand == F("wipe")) {
+          mode = Wipe;
+
+          _counter_mode_step = 0;
+
+          hex2rgb(parseString(string, 3));
+          if (parseString(string, 4) != "") {
+            hex2rrggbb(parseString(string, 4));
+          } else {
+            hex2rrggbb("000000");
+          }
+
+          speed = (parseString(string, 5) == "")
+          ? defaultspeed
+          : parseString(string, 5).toInt();
+        }
+
+        else if (subCommand == F("dualwipe")) {
+          mode = Dualwipe;
+
+          _counter_mode_step = 0;
+
+          hex2rgb(parseString(string, 3));
+          if (parseString(string, 4) != "") {
+            hex2rrggbb(parseString(string, 4));
+          } else {
+            hex2rrggbb("000000");
+          }
+
+          speed = (parseString(string, 5) == "")
+          ? defaultspeed
+          : parseString(string, 5).toInt();
+        }
+
+        else if (subCommand == F("faketv")) {
+          mode = FakeTV;
+          _counter_mode_step = 0;
+
+          randomSeed(analogRead(A0));
+          pixelNum = random(numPixels); // Begin at random point
+
+          startpixel = (parseString(string, 3) == "")
+          ? 0
+          : parseString(string, 3).toInt() - 1;
+          endpixel = (parseString(string, 4) == "")
+          ? pixelCount
+          : parseString(string, 4).toInt();
+        }
+
+        else if (subCommand == F("fire")) {
+          mode = Fire;
+
+          fps = (parseString(string, 3) == "")
+          ? fps
+          : parseString(string, 3).toInt();
+
+          fps = (fps == 0 || fps > 50) ? 50 : fps;
+
+          brightness = (parseString(string, 4) == "")
+          ? brightness
+          : parseString(string, 4).toFloat();
+          cooling = (parseString(string, 5) == "")
+          ? cooling
+          : parseString(string, 5).toFloat();
+          sparking = (parseString(string, 6) == "")
+          ? sparking
+          : parseString(string, 6).toFloat();
+        }
+
+        else if (subCommand == F("simpleclock")) {
+          mode = SimpleClock;
+
+          rgb_tick_s = (parseString(string, 3) == "")
+          ? rgb_tick_s
+          : RgbColor ( rgbStr2Num(parseString(string, 3)) >> 16, rgbStr2Num(parseString(string, 3)) >> 8, rgbStr2Num(parseString(string, 3)));
+           rgb_tick_b = (parseString(string, 4) == "")
+          ? rgb_tick_b
+          : RgbColor ( rgbStr2Num(parseString(string, 4)) >> 16, rgbStr2Num(parseString(string, 4)) >> 8, rgbStr2Num(parseString(string, 4)));
+           rgb_h = (parseString(string, 5) == "")
+          ? rgb_h
+          : RgbColor ( rgbStr2Num(parseString(string, 5)) >> 16, rgbStr2Num(parseString(string, 5)) >> 8, rgbStr2Num(parseString(string, 5)));
+           rgb_m = (parseString(string, 6) == "")
+          ? rgb_m
+          : RgbColor ( rgbStr2Num(parseString(string, 6)) >> 16, rgbStr2Num(parseString(string, 6)) >> 8, rgbStr2Num(parseString(string, 6)));
+           rgb_s = (parseString(string, 7) == "")
+          ? rgb_s
+          : RgbColor ( rgbStr2Num(parseString(string, 7)) >> 16, rgbStr2Num(parseString(string, 7)) >> 8, rgbStr2Num(parseString(string, 7)));
+        }
+
+        else if (subCommand == F("stop")) {
+          mode = On;
+        }
+
+        else if (subCommand == F("statusrequest")) {
+        }
+
+        else if ( subCommand != F("all") && subCommand != F("line")
+        && subCommand != F("one") && subCommand != F("fade")
+        && subCommand != F("dim") && subCommand != F("fadetime")
+        && subCommand != F("speed") && subCommand != F("fadedelay")
+        && subCommand != F("count") && subCommand != F("bgcolor")
+        && subCommand != F("on") && subCommand != F("off")
+        && subCommand != F("rgb") && subCommand != F("rainbow")
+        && subCommand != F("kitt") && subCommand != F("comet")
+        && subCommand != F("theatre") && subCommand != F("scan")
+        && subCommand != F("dualscan") && subCommand != F("twinkle")
+        && subCommand != F("sparkle") && subCommand != F("fire")
+        && subCommand != F("twinklefade") && subCommand != F("stop")
+        && subCommand != F("wipe") && subCommand != F("dualwipe")
+        && subCommand != F("colorfade") && subCommand != F("simpleclock")
+        && subCommand != F("statusrequest") && subCommand != F("faketv")) {
+          log = F("NeoPixelBus: unknown subcommand: ");
+          log += subCommand;
+          addLog(LOG_LEVEL_INFO, log);
+
+          String json;
+          printToWebJSON = true;
+          json += F("{\n");
+          json += F("\"plugin\": \"124\",\n");
+          json += F("\"log\": \"");
+          json += F("NeoPixelBus: unknown command: ");
+          json += subCommand;
+          json += F("\"\n");
+          json += F("}\n");
+          SendStatus(event->Source, json); // send http response to controller (JSON format)
+        }
+        NeoPixelSendStatus(event->Source);
+      } // command neopixel
+
+      if ( speed == 0 ) mode = On; // speed = 0 = stop mode
+      speed = ( speed > SPEED_MAX || speed < -SPEED_MAX ) ? defaultspeed : speed; // avoid invalid values
+      fadetime = (fadetime <= 0) ? 20 : fadetime;
+
+      break;
+    }
+
+    case PLUGIN_FIFTY_PER_SECOND:
+    {
+      counter20ms++;
+      lastmode = mode;
+
+      switch (mode) {
+        case Fade:
+        fade();
+        break;
+
+        case ColorFade:
+        colorfade();
+        break;
+
+        case Rainbow:
+        rainbow();
+        break;
+
+        case Kitt:
+        kitt();
+        break;
+
+        case Comet:
+        comet();
+        break;
+
+        case Theatre:
+        theatre();
+        break;
+
+        case Scan:
+        scan();
+        break;
+
+        case Dualscan:
+        dualscan();
+        break;
+
+        case Twinkle:
+        twinkle();
+        break;
+
+        case TwinkleFade:
+        twinklefade();
+        break;
+
+        case Sparkle:
+        sparkle();
+        break;
+
+        case Fire:
+        fire();
+        break;
+
+        case Wipe:
+        wipe();
+        break;
+
+        case Dualwipe:
+        dualwipe();
+        break;
+
+        case FakeTV:
+        faketv();
+        break;
+
+        case SimpleClock:
+        Plugin_124_simpleclock();
+        break;
+
+        default:
+        break;
+      } // switch mode
+
+      Plugin_124_pixels->Show();
+
+      if (mode != lastmode) {
+        String log = "";
+        log = F("NeoPixelBus: Mode Change: ");
+        log += modeName[mode];
+        addLog(LOG_LEVEL_INFO, log);
+        NeoPixelSendStatus(event->Source);
+      }
+      success = true;
+      break;
+    }
+
+    break;
+
+
+  }
+  return success;
 }
 
 void fade(void) {
 for (int pixel = 0; pixel < pixelCount; pixel++){
-	long zaehler = 20 * ( counter20ms - starttime[pixel] );
-	float progress = (float) zaehler / (float) fadetime ;
-	progress = (progress < 0) ? 0 : progress;
-	progress = (progress > 1) ? 1 : progress;
+  long zaehler = 20 * ( counter20ms - starttime[pixel] );
+  float progress = (float) zaehler / (float) fadetime ;
+  progress = (progress < 0) ? 0 : progress;
+  progress = (progress > 1) ? 1 : progress;
 
-	RgbColor updatedColor = RgbColor::LinearBlend(
-		rgb_old[pixel], rgb_target[pixel],
-		progress);
+  RgbColor updatedColor = RgbColor::LinearBlend(
+    rgb_old[pixel], rgb_target[pixel],
+    progress);
 
-		if ( counter20ms > maxtime && Plugin_124_pixels->GetPixelColor(pixel).R == 0 && Plugin_124_pixels->GetPixelColor(pixel).G == 0 && Plugin_124_pixels->GetPixelColor(pixel).B == 0) {
-			mode = Off;
-		} else if ( counter20ms > maxtime ) {
-			mode = On;
-		}
+    if ( counter20ms > maxtime && Plugin_124_pixels->GetPixelColor(pixel).R == 0 && Plugin_124_pixels->GetPixelColor(pixel).G == 0 && Plugin_124_pixels->GetPixelColor(pixel).B == 0) {
+      mode = Off;
+    } else if ( counter20ms > maxtime ) {
+      mode = On;
+    }
 
-		Plugin_124_pixels->SetPixelColor(pixel, updatedColor);
-	}
+    Plugin_124_pixels->SetPixelColor(pixel, updatedColor);
+  }
 }
 
 void colorfade(void) {
 float progress = 0;
-difference = abs(endpixel - startpixel);
+difference = (endpixel - startpixel + pixelCount) % pixelCount;
 for(uint8_t i = 0; i < difference; i++)
 {
 
-	progress = (float) i / ( difference - 1 );
-	progress = (progress >= 1) ? 1 : progress;
-	progress = (progress <= 0) ? 0 : progress;
+  progress = (float) i / ( difference - 1 );
+  progress = (progress >= 1) ? 1 : progress;
+  progress = (progress <= 0) ? 0 : progress;
 
-	RgbColor updatedColor = RgbColor::LinearBlend(
-		rgb, rrggbb,
-		progress);
+  RgbColor updatedColor = RgbColor::LinearBlend(
+    rgb, rrggbb,
+    progress);
 
-		Plugin_124_pixels->SetPixelColor(i + startpixel, updatedColor);
-	}
-	mode = On;
+    Plugin_124_pixels->SetPixelColor((i + startpixel)%pixelCount, updatedColor);
+  }
+  mode = On;
 }
 
+
 void wipe(void) {
-	if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0) {
-		if (speed > 0) {
-			Plugin_124_pixels->SetPixelColor(_counter_mode_step, rrggbb);
-			if ( _counter_mode_step > 0 ) Plugin_124_pixels->SetPixelColor( _counter_mode_step - 1, rgb);
-		} else {
-			Plugin_124_pixels->SetPixelColor(pixelCount - _counter_mode_step - 1, rrggbb);
-			if ( _counter_mode_step > 0 ) Plugin_124_pixels->SetPixelColor( pixelCount - _counter_mode_step, rgb);
-		}
-		if ( _counter_mode_step == pixelCount ) mode = On;
-		_counter_mode_step++;
-	}
+  if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0) {
+    if (speed > 0) {
+      Plugin_124_pixels->SetPixelColor(_counter_mode_step, rrggbb);
+      if ( _counter_mode_step > 0 ) Plugin_124_pixels->SetPixelColor( _counter_mode_step - 1, rgb);
+    } else {
+      Plugin_124_pixels->SetPixelColor(pixelCount - _counter_mode_step - 1, rrggbb);
+      if ( _counter_mode_step > 0 ) Plugin_124_pixels->SetPixelColor( pixelCount - _counter_mode_step, rgb);
+    }
+    if ( _counter_mode_step == pixelCount ) mode = On;
+    _counter_mode_step++;
+  }
 }
 
 void dualwipe(void) {
-	if (counter20ms % (SPEED_MAX / abs(speed)) == 0) {
-		if (speed > 0) {
-			int i = _counter_mode_step - pixelCount;
-			i = abs(i);
-			Plugin_124_pixels->SetPixelColor(_counter_mode_step, rrggbb);
-			Plugin_124_pixels->SetPixelColor(i, rgb);
-			if (_counter_mode_step > 0 ) {
-				Plugin_124_pixels->SetPixelColor(_counter_mode_step - 1, rgb);
-				Plugin_124_pixels->SetPixelColor(i - 1, rrggbb);
-			}
-		} else {
-			int i = (pixelCount / 2) - _counter_mode_step;
-			i = abs(i);
-			Plugin_124_pixels->SetPixelColor(_counter_mode_step + (pixelCount / 2), rrggbb);
-			Plugin_124_pixels->SetPixelColor(i, rgb);
-			if (_counter_mode_step > 0 ) {
-				Plugin_124_pixels->SetPixelColor(_counter_mode_step + (pixelCount / 2) - 1, rgb);
-				Plugin_124_pixels->SetPixelColor(i - 1, rrggbb);
-			}
-		}
-		if (_counter_mode_step >= pixelCount / 2) {
-			mode = On;
-			Plugin_124_pixels->SetPixelColor(_counter_mode_step - 1, rgb);
-		}
-		_counter_mode_step++;
-	}
+  if (counter20ms % (SPEED_MAX / abs(speed)) == 0) {
+    if (speed > 0) {
+      int i = _counter_mode_step - pixelCount;
+      i = abs(i);
+      Plugin_124_pixels->SetPixelColor(_counter_mode_step, rrggbb);
+      Plugin_124_pixels->SetPixelColor(i, rgb);
+      if (_counter_mode_step > 0 ) {
+        Plugin_124_pixels->SetPixelColor(_counter_mode_step - 1, rgb);
+        Plugin_124_pixels->SetPixelColor(i - 1, rrggbb);
+      }
+    } else {
+      int i = (pixelCount / 2) - _counter_mode_step;
+      i = abs(i);
+      Plugin_124_pixels->SetPixelColor(_counter_mode_step + (pixelCount / 2), rrggbb);
+      Plugin_124_pixels->SetPixelColor(i, rgb);
+      if (_counter_mode_step > 0 ) {
+        Plugin_124_pixels->SetPixelColor(_counter_mode_step + (pixelCount / 2) - 1, rgb);
+        Plugin_124_pixels->SetPixelColor(i - 1, rrggbb);
+      }
+    }
+    if (_counter_mode_step >= pixelCount / 2) {
+      mode = On;
+      Plugin_124_pixels->SetPixelColor(_counter_mode_step - 1, rgb);
+    }
+    _counter_mode_step++;
+  }
 }
 
 void faketv(void) {
-	if (counter20ms >= ftv_holdTime) {
+  if (counter20ms >= ftv_holdTime) {
 
-		uint32_t ftv_totalTime, ftv_fadeTime, ftv_startTime, ftv_elapsed;
-		uint16_t ftv_nr, ftv_ng, ftv_nb, ftv_r, ftv_g, ftv_b, ftv_i;
-		uint8_t  ftv_hi, ftv_lo, ftv_r8, ftv_g8, ftv_b8, ftv_frac;
-		difference = abs(endpixel - startpixel);
+    uint32_t ftv_totalTime, ftv_fadeTime, ftv_startTime, ftv_elapsed;
+    uint16_t ftv_nr, ftv_ng, ftv_nb, ftv_r, ftv_g, ftv_b, ftv_i;
+    uint8_t  ftv_hi, ftv_lo, ftv_r8, ftv_g8, ftv_b8, ftv_frac;
+    difference = abs(endpixel - startpixel);
 
-		if (ftv_elapsed >= ftv_fadeTime) {
-			// Read next 16-bit (5/6/5) color
-			ftv_hi = pgm_read_byte(&ftv_colors[pixelNum * 2    ]);
-			ftv_lo = pgm_read_byte(&ftv_colors[pixelNum * 2 + 1]);
-			if(++pixelNum >= numPixels) pixelNum = 0;
+    if (ftv_elapsed >= ftv_fadeTime) {
+      // Read next 16-bit (5/6/5) color
+      ftv_hi = pgm_read_byte(&ftv_colors[pixelNum * 2    ]);
+      ftv_lo = pgm_read_byte(&ftv_colors[pixelNum * 2 + 1]);
+      if(++pixelNum >= numPixels) pixelNum = 0;
 
-			// Expand to 24-bit (8/8/8)
-			ftv_r8 = (ftv_hi & 0xF8) | (ftv_hi >> 5);
-			ftv_g8 = (ftv_hi << 5) | ((ftv_lo & 0xE0) >> 3) | ((ftv_hi & 0x06) >> 1);
-			ftv_b8 = (ftv_lo << 3) | ((ftv_lo & 0x1F) >> 2);
-			// Apply gamma correction, further expand to 16/16/16
-			ftv_nr = (uint8_t)pgm_read_byte(&ftv_gamma8[ftv_r8]) * 257; // New R/G/B
-			ftv_ng = (uint8_t)pgm_read_byte(&ftv_gamma8[ftv_g8]) * 257;
-			ftv_nb = (uint8_t)pgm_read_byte(&ftv_gamma8[ftv_b8]) * 257;
+      // Expand to 24-bit (8/8/8)
+      ftv_r8 = (ftv_hi & 0xF8) | (ftv_hi >> 5);
+      ftv_g8 = (ftv_hi << 5) | ((ftv_lo & 0xE0) >> 3) | ((ftv_hi & 0x06) >> 1);
+      ftv_b8 = (ftv_lo << 3) | ((ftv_lo & 0x1F) >> 2);
+      // Apply gamma correction, further expand to 16/16/16
+      ftv_nr = (uint8_t)pgm_read_byte(&ftv_gamma8[ftv_r8]) * 257; // New R/G/B
+      ftv_ng = (uint8_t)pgm_read_byte(&ftv_gamma8[ftv_g8]) * 257;
+      ftv_nb = (uint8_t)pgm_read_byte(&ftv_gamma8[ftv_b8]) * 257;
 
-			ftv_totalTime = random(12, 125);    // Semi-random pixel-to-pixel time
-			ftv_fadeTime  = random(0, ftv_totalTime); // Pixel-to-pixel transition time
-			if(random(10) < 3) ftv_fadeTime = 0;  // Force scene cut 30% of time
-			ftv_holdTime  = counter20ms + ftv_totalTime - ftv_fadeTime; // Non-transition time
-			ftv_startTime = counter20ms;
-		}
+      ftv_totalTime = random(12, 125);    // Semi-random pixel-to-pixel time
+      ftv_fadeTime  = random(0, ftv_totalTime); // Pixel-to-pixel transition time
+      if(random(10) < 3) ftv_fadeTime = 0;  // Force scene cut 30% of time
+      ftv_holdTime  = counter20ms + ftv_totalTime - ftv_fadeTime; // Non-transition time
+      ftv_startTime = counter20ms;
+    }
 
-		ftv_elapsed = counter20ms - ftv_startTime;
-		if(ftv_fadeTime) {
-			ftv_r = map(ftv_elapsed, 0, ftv_fadeTime, ftv_pr, ftv_nr); // 16-bit interp
-			ftv_g = map(ftv_elapsed, 0, ftv_fadeTime, ftv_pg, ftv_ng);
-			ftv_b = map(ftv_elapsed, 0, ftv_fadeTime, ftv_pb, ftv_nb);
-		} else { // Avoid divide-by-zero in map()
-			ftv_r = ftv_nr;
-			ftv_g = ftv_ng;
-			ftv_b = ftv_nb;
-		}
+    ftv_elapsed = counter20ms - ftv_startTime;
+    if(ftv_fadeTime) {
+      ftv_r = map(ftv_elapsed, 0, ftv_fadeTime, ftv_pr, ftv_nr); // 16-bit interp
+      ftv_g = map(ftv_elapsed, 0, ftv_fadeTime, ftv_pg, ftv_ng);
+      ftv_b = map(ftv_elapsed, 0, ftv_fadeTime, ftv_pb, ftv_nb);
+    } else { // Avoid divide-by-zero in map()
+      ftv_r = ftv_nr;
+      ftv_g = ftv_ng;
+      ftv_b = ftv_nb;
+    }
 
-		for(ftv_i=0; ftv_i<difference; ftv_i++) {
-			ftv_r8   = ftv_r >> 8; // Quantize to 8-bit
-			ftv_g8   = ftv_g >> 8;
-			ftv_b8   = ftv_b >> 8;
-			ftv_frac = (ftv_i << 8) / difference; // LED index scaled to 0-255
-			if((ftv_r8 < 255) && ((ftv_r & 0xFF) >= ftv_frac)) ftv_r8++; // Boost some fraction
-			if((ftv_g8 < 255) && ((ftv_g & 0xFF) >= ftv_frac)) ftv_g8++; // of LEDs to handle
-			if((ftv_b8 < 255) && ((ftv_b & 0xFF) >= ftv_frac)) ftv_b8++; // interp > 8bit
-			Plugin_124_pixels->SetPixelColor(ftv_i + startpixel, RgbColor(ftv_r8, ftv_g8, ftv_b8));
-		}
+    for(ftv_i=0; ftv_i<difference; ftv_i++) {
+      ftv_r8   = ftv_r >> 8; // Quantize to 8-bit
+      ftv_g8   = ftv_g >> 8;
+      ftv_b8   = ftv_b >> 8;
+      ftv_frac = (ftv_i << 8) / difference; // LED index scaled to 0-255
+      if((ftv_r8 < 255) && ((ftv_r & 0xFF) >= ftv_frac)) ftv_r8++; // Boost some fraction
+      if((ftv_g8 < 255) && ((ftv_g & 0xFF) >= ftv_frac)) ftv_g8++; // of LEDs to handle
+      if((ftv_b8 < 255) && ((ftv_b & 0xFF) >= ftv_frac)) ftv_b8++; // interp > 8bit
+      Plugin_124_pixels->SetPixelColor(ftv_i + startpixel, RgbColor(ftv_r8, ftv_g8, ftv_b8));
+    }
 
-		ftv_pr = ftv_nr; // Prev RGB = new RGB
-		ftv_pg = ftv_ng;
-		ftv_pb = ftv_nb;
-	}
+    ftv_pr = ftv_nr; // Prev RGB = new RGB
+    ftv_pg = ftv_ng;
+    ftv_pb = ftv_nb;
+  }
 }
 
 /*
 * Cycles a rainbow over the entire string of LEDs.
 */
 void rainbow(void) {
-	for(int i=0; i< pixelCount; i++)
-	{
-		uint8_t r1 = (Wheel(((i * 256 / pixelCount) + counter20ms * rainbowspeed) & 255) >> 16);
-		uint8_t g1 = (Wheel(((i * 256 / pixelCount) + counter20ms * rainbowspeed) & 255) >> 8);
-		uint8_t b1 = (Wheel(((i * 256 / pixelCount) + counter20ms * rainbowspeed) & 255));
-		Plugin_124_pixels->SetPixelColor(i, RgbColor(r1, g1, b1));
-	}
-	mode = (rainbowspeed == 0) ? On : Rainbow;
+  for(int i=0; i< pixelCount; i++)
+  {
+    uint8_t r1 = (Wheel(((i * 256 / pixelCount) + counter20ms * rainbowspeed) & 255) >> 16);
+    uint8_t g1 = (Wheel(((i * 256 / pixelCount) + counter20ms * rainbowspeed) & 255) >> 8);
+    uint8_t b1 = (Wheel(((i * 256 / pixelCount) + counter20ms * rainbowspeed) & 255));
+    Plugin_124_pixels->SetPixelColor(i, RgbColor(r1, g1, b1));
+  }
+  mode = (rainbowspeed == 0) ? On : Rainbow;
 }
 
 
@@ -881,107 +925,107 @@ void rainbow(void) {
 * Inspired by the Adafruit examples.
 */
 uint32_t Wheel(uint8_t pos) {
-	pos = 255 - pos;
-	if(pos < 85) {
-		return ((uint32_t)(255 - pos * 3) << 16) | ((uint32_t)(0) << 8) | (pos * 3);
-	} else if(pos < 170) {
-		pos -= 85;
-		return ((uint32_t)(0) << 16) | ((uint32_t)(pos * 3) << 8) | (255 - pos * 3);
-	} else {
-		pos -= 170;
-		return ((uint32_t)(pos * 3) << 16) | ((uint32_t)(255 - pos * 3) << 8) | (0);
-	}
+  pos = 255 - pos;
+  if(pos < 85) {
+    return ((uint32_t)(255 - pos * 3) << 16) | ((uint32_t)(0) << 8) | (pos * 3);
+  } else if(pos < 170) {
+    pos -= 85;
+    return ((uint32_t)(0) << 16) | ((uint32_t)(pos * 3) << 8) | (255 - pos * 3);
+  } else {
+    pos -= 170;
+    return ((uint32_t)(pos * 3) << 16) | ((uint32_t)(255 - pos * 3) << 8) | (0);
+  }
 }
 
 
 // Larson Scanner K.I.T.T.
 void kitt(void) {
 
-	if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0)
-	{
-		for(uint16_t i=0; i < pixelCount; i++) {
-			RgbColor px_rgb = Plugin_124_pixels->GetPixelColor(i);
+  if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0)
+  {
+    for(uint16_t i=0; i < pixelCount; i++) {
+      RgbColor px_rgb = Plugin_124_pixels->GetPixelColor(i);
 
-			// fade out (divide by 2)
-			px_rgb.R = px_rgb.R >> 1;
-			px_rgb.G = px_rgb.G >> 1;
-			px_rgb.B = px_rgb.B >> 1;
+      // fade out (divide by 2)
+      px_rgb.R = px_rgb.R >> 1;
+      px_rgb.G = px_rgb.G >> 1;
+      px_rgb.B = px_rgb.B >> 1;
 
-			Plugin_124_pixels->SetPixelColor(i, px_rgb);
-		}
+      Plugin_124_pixels->SetPixelColor(i, px_rgb);
+    }
 
-		uint16_t pos = 0;
+    uint16_t pos = 0;
 
-		if(_counter_mode_step < pixelCount) {
-			pos = _counter_mode_step;
-		} else {
-			pos = (pixelCount * 2) - _counter_mode_step - 2;
-		}
+    if(_counter_mode_step < pixelCount) {
+      pos = _counter_mode_step;
+    } else {
+      pos = (pixelCount * 2) - _counter_mode_step - 2;
+    }
 
-		Plugin_124_pixels->SetPixelColor(pos, rgb);
+    Plugin_124_pixels->SetPixelColor(pos, rgb);
 
-		_counter_mode_step = (_counter_mode_step + 1) % ((pixelCount * 2) - 2);
-	}
+    _counter_mode_step = (_counter_mode_step + 1) % ((pixelCount * 2) - 2);
+  }
 }
 
 
 //Firing comets from one end.
 void comet(void) {
 
-	if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0)
-	{
-		for(uint16_t i=0; i < pixelCount; i++) {
+  if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0)
+  {
+    for(uint16_t i=0; i < pixelCount; i++) {
 
-			if (speed > 0) {
+      if (speed > 0) {
 
-				byte px_r = Plugin_124_pixels->GetPixelColor(i).R;
-				byte px_g = Plugin_124_pixels->GetPixelColor(i).G;
-				byte px_b = Plugin_124_pixels->GetPixelColor(i).B;
+        byte px_r = Plugin_124_pixels->GetPixelColor(i).R;
+        byte px_g = Plugin_124_pixels->GetPixelColor(i).G;
+        byte px_b = Plugin_124_pixels->GetPixelColor(i).B;
 
-				// fade out (divide by 2)
-				px_r = px_r >> 1;
-				px_g = px_g >> 1;
-				px_b = px_b >> 1;
+        // fade out (divide by 2)
+        px_r = px_r >> 1;
+        px_g = px_g >> 1;
+        px_b = px_b >> 1;
 
-				Plugin_124_pixels->SetPixelColor(i, RgbColor(px_r, px_g, px_b));
+        Plugin_124_pixels->SetPixelColor(i, RgbColor(px_r, px_g, px_b));
 
-			} else {
+      } else {
 
-				byte px_r = Plugin_124_pixels->GetPixelColor(pixelCount -i -1).R;
-				byte px_g = Plugin_124_pixels->GetPixelColor(pixelCount -i -1).G;
-				byte px_b = Plugin_124_pixels->GetPixelColor(pixelCount -i -1).B;
+        byte px_r = Plugin_124_pixels->GetPixelColor(pixelCount -i -1).R;
+        byte px_g = Plugin_124_pixels->GetPixelColor(pixelCount -i -1).G;
+        byte px_b = Plugin_124_pixels->GetPixelColor(pixelCount -i -1).B;
 
-				// fade out (divide by 2)
-				px_r = px_r >> 1;
-				px_g = px_g >> 1;
-				px_b = px_b >> 1;
+        // fade out (divide by 2)
+        px_r = px_r >> 1;
+        px_g = px_g >> 1;
+        px_b = px_b >> 1;
 
-				Plugin_124_pixels->SetPixelColor(pixelCount -i -1, RgbColor(px_r, px_g, px_b));
-			}
-		}
+        Plugin_124_pixels->SetPixelColor(pixelCount -i -1, RgbColor(px_r, px_g, px_b));
+      }
+    }
 
-		if (speed > 0) {
-			Plugin_124_pixels->SetPixelColor(_counter_mode_step, rgb);
-		} else {
-			Plugin_124_pixels->SetPixelColor(pixelCount - _counter_mode_step -1, rgb);
-		}
+    if (speed > 0) {
+      Plugin_124_pixels->SetPixelColor(_counter_mode_step, rgb);
+    } else {
+      Plugin_124_pixels->SetPixelColor(pixelCount - _counter_mode_step -1, rgb);
+    }
 
-		_counter_mode_step = (_counter_mode_step + 1) % pixelCount;
-	}
+    _counter_mode_step = (_counter_mode_step + 1) % pixelCount;
+  }
 }
 
 
 //Theatre lights
 void theatre(void) {
 
-	if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
-	{
-		if (speed > 0) {
-			Plugin_124_pixels->RotateLeft(1,0,(pixelCount/count)*count-1);
-		} else {
-			Plugin_124_pixels->RotateRight(1,0,(pixelCount/count)*count-1);
-		}
-	}
+  if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
+  {
+    if (speed > 0) {
+      Plugin_124_pixels->RotateLeft(1,0,(pixelCount/count)*count-1);
+    } else {
+      Plugin_124_pixels->RotateRight(1,0,(pixelCount/count)*count-1);
+    }
+  }
 }
 
 
@@ -989,20 +1033,20 @@ void theatre(void) {
 * Runs a single pixel back and forth.
 */
 void scan(void) {
-	if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
-	{
-		if(_counter_mode_step > (pixelCount*2) - 2) {
-			_counter_mode_step = 0;
-		}
-		_counter_mode_step++;
+  if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
+  {
+    if(_counter_mode_step > (pixelCount*2) - 2) {
+      _counter_mode_step = 0;
+    }
+    _counter_mode_step++;
 
-		int i = _counter_mode_step - (pixelCount - 1);
-		i = abs(i);
+    int i = _counter_mode_step - (pixelCount - 1);
+    i = abs(i);
 
-		//Plugin_124_pixels->ClearTo(rrggbb);
-		for (int i = 0; i < pixelCount; i++) Plugin_124_pixels->SetPixelColor(i,rrggbb);
-		Plugin_124_pixels->SetPixelColor(abs(i), rgb);
-	}
+    //Plugin_124_pixels->ClearTo(rrggbb);
+    for (int i = 0; i < pixelCount; i++) Plugin_124_pixels->SetPixelColor(i,rrggbb);
+    Plugin_124_pixels->SetPixelColor(abs(i), rgb);
+  }
 
 }
 
@@ -1012,22 +1056,22 @@ void scan(void) {
 */
 void dualscan(void) {
 
-	if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0) {
-		if(_counter_mode_step > (pixelCount*2) - 2) {
-			_counter_mode_step = 0;
-		}
+  if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0) {
+    if(_counter_mode_step > (pixelCount*2) - 2) {
+      _counter_mode_step = 0;
+    }
 
-		_counter_mode_step++;
+    _counter_mode_step++;
 
-		int i = _counter_mode_step - (pixelCount - 1);
-		i = abs(i);
+    int i = _counter_mode_step - (pixelCount - 1);
+    i = abs(i);
 
-		//Plugin_124_pixels->ClearTo(rrggbb);
-		for (int i = 0; i < pixelCount; i++) Plugin_124_pixels->SetPixelColor(i,rrggbb);
-		Plugin_124_pixels->SetPixelColor(abs(i), rgb);
-		Plugin_124_pixels->SetPixelColor(pixelCount - (i+1), rgb);
+    //Plugin_124_pixels->ClearTo(rrggbb);
+    for (int i = 0; i < pixelCount; i++) Plugin_124_pixels->SetPixelColor(i,rrggbb);
+    Plugin_124_pixels->SetPixelColor(abs(i), rgb);
+    Plugin_124_pixels->SetPixelColor(pixelCount - (i+1), rgb);
 
-	}
+  }
 }
 
 
@@ -1037,20 +1081,20 @@ void dualscan(void) {
 */
 void twinkle(void) {
 
-	if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
-	{
-		if(_counter_mode_step == 0) {
-			//Plugin_124_pixels->ClearTo(rrggbb);
-			for (int i = 0; i < pixelCount; i++) Plugin_124_pixels->SetPixelColor(i,rrggbb);
-			uint16_t min_leds = _max(1, pixelCount/5); // make sure, at least one LED is on
-			uint16_t max_leds = _max(1, pixelCount/2); // make sure, at least one LED is on
-			_counter_mode_step = random(min_leds, max_leds);
-		}
+  if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
+  {
+    if(_counter_mode_step == 0) {
+      //Plugin_124_pixels->ClearTo(rrggbb);
+      for (int i = 0; i < pixelCount; i++) Plugin_124_pixels->SetPixelColor(i,rrggbb);
+      uint16_t min_leds = _max(1, pixelCount/5); // make sure, at least one LED is on
+      uint16_t max_leds = _max(1, pixelCount/2); // make sure, at least one LED is on
+      _counter_mode_step = random(min_leds, max_leds);
+    }
 
-		Plugin_124_pixels->SetPixelColor(random(pixelCount), rgb);
+    Plugin_124_pixels->SetPixelColor(random(pixelCount), rgb);
 
-		_counter_mode_step--;
-	}
+    _counter_mode_step--;
+  }
 }
 
 
@@ -1059,26 +1103,26 @@ void twinkle(void) {
 */
 void twinklefade(void) {
 
-	if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
-	{
-		for(uint16_t i=0; i < pixelCount; i++) {
+  if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
+  {
+    for(uint16_t i=0; i < pixelCount; i++) {
 
-			byte px_r = Plugin_124_pixels->GetPixelColor(pixelCount -i -1).R;
-			byte px_g = Plugin_124_pixels->GetPixelColor(pixelCount -i -1).G;
-			byte px_b = Plugin_124_pixels->GetPixelColor(pixelCount -i -1).B;
+      byte px_r = Plugin_124_pixels->GetPixelColor(pixelCount -i -1).R;
+      byte px_g = Plugin_124_pixels->GetPixelColor(pixelCount -i -1).G;
+      byte px_b = Plugin_124_pixels->GetPixelColor(pixelCount -i -1).B;
 
-			// fade out (divide by 2)
-			px_r = px_r >> 1;
-			px_g = px_g >> 1;
-			px_b = px_b >> 1;
+      // fade out (divide by 2)
+      px_r = px_r >> 1;
+      px_g = px_g >> 1;
+      px_b = px_b >> 1;
 
-			Plugin_124_pixels->SetPixelColor(i, RgbColor(px_r, px_g, px_b));
-		}
+      Plugin_124_pixels->SetPixelColor(i, RgbColor(px_r, px_g, px_b));
+    }
 
-		if(random(count) < 50) {
-			Plugin_124_pixels->SetPixelColor(random(pixelCount), rgb);
-		}
-	}
+    if(random(count) < 50) {
+      Plugin_124_pixels->SetPixelColor(random(pixelCount), rgb);
+    }
+  }
 }
 
 
@@ -1088,14 +1132,13 @@ void twinklefade(void) {
 */
 void sparkle(void) {
 
-	if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
-	{
-		//Plugin_124_pixels->ClearTo(rrggbb);
-		for (int i = 0; i < pixelCount; i++) Plugin_124_pixels->SetPixelColor(i,rrggbb);
-		Plugin_124_pixels->SetPixelColor(random(pixelCount), rgb);
-	}
+  if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
+  {
+    //Plugin_124_pixels->ClearTo(rrggbb);
+    for (int i = 0; i < pixelCount; i++) Plugin_124_pixels->SetPixelColor(i,rrggbb);
+    Plugin_124_pixels->SetPixelColor(random(pixelCount), rgb);
+  }
 }
-
 
 //Fire
 long fireTimer;
@@ -1103,104 +1146,142 @@ CRGB leds[ARRAYSIZE];
 
 void fire(void) {
 
-	if (counter20ms > fireTimer + 50 / fps) {
-		fireTimer = counter20ms;
-		Fire2012();
-		RgbColor pixel;
+  if (counter20ms > fireTimer + 50 / fps) {
+    fireTimer = counter20ms;
+    Fire2012();
+    RgbColor pixel;
 
-		for (int i = 0; i < pixelCount; i++) {
-			pixel = RgbColor(leds[i].r, leds[i].g, leds[i].b);
-			pixel = RgbColor::LinearBlend(pixel, RgbColor(0, 0, 0), (255 - brightness)/255.0);
-			Plugin_124_pixels->SetPixelColor(i, pixel);
-		}
-	}
+    for (int i = 0; i < pixelCount; i++) {
+      pixel = RgbColor(leds[i].r, leds[i].g, leds[i].b);
+      pixel = RgbColor::LinearBlend(pixel, RgbColor(0, 0, 0), (255 - brightness)/255.0);
+      Plugin_124_pixels->SetPixelColor(i, pixel);
+    }
+  }
 }
 
 void Fire2012(void) {
-	// Array of temperature readings at each simulation cell
-	static byte heat[ARRAYSIZE];
+  // Array of temperature readings at each simulation cell
+  static byte heat[ARRAYSIZE];
 
-	// Step 1.  Cool down every cell a little
-	for ( int i = 0; i < pixelCount; i++) {
-		heat[i] = qsub8( heat[i],  random8(0, ((cooling * 10) / pixelCount) + 2));
-	}
+  // Step 1.  Cool down every cell a little
+  for ( int i = 0; i < pixelCount; i++) {
+    heat[i] = qsub8( heat[i],  random8(0, ((cooling * 10) / pixelCount) + 2));
+  }
 
-	// Step 2.  Heat from each cell drifts 'up' and diffuses a little
-	for ( int k = pixelCount - 1; k >= 2; k--) {
-		heat[k] = (heat[k - 1] + heat[k - 2] + heat[k - 2] ) / 3;
-	}
+  // Step 2.  Heat from each cell drifts 'up' and diffuses a little
+  for ( int k = pixelCount - 1; k >= 2; k--) {
+    heat[k] = (heat[k - 1] + heat[k - 2] + heat[k - 2] ) / 3;
+  }
 
-	// Step 3.  Randomly ignite new 'sparks' of heat near the bottom
-	if ( random8() < sparking ) {
-		int y = random8(7);
-		heat[y] = qadd8( heat[y], random8(160, 255) );
-	}
+  // Step 3.  Randomly ignite new 'sparks' of heat near the bottom
+  if ( random8() < sparking ) {
+    int y = random8(7);
+    heat[y] = qadd8( heat[y], random8(160, 255) );
+  }
 
-	// Step 4.  Map from heat cells to LED colors
-	for ( int j = 0; j < pixelCount; j++) {
-		CRGB color = HeatColor( heat[j]);
-		int pixelnumber;
-		if ( gReverseDirection ) {
-			pixelnumber = (pixelCount - 1) - j;
-		} else {
-			pixelnumber = j;
-		}
-		leds[pixelnumber] = color;
-	}
+  // Step 4.  Map from heat cells to LED colors
+  for ( int j = 0; j < pixelCount; j++) {
+    CRGB color = HeatColor( heat[j]);
+    int pixelnumber;
+    if ( gReverseDirection ) {
+      pixelnumber = (pixelCount - 1) - j;
+    } else {
+      pixelnumber = j;
+    }
+    leds[pixelnumber] = color;
+  }
+}
+
+void Plugin_124_simpleclock()
+{
+  byte Hours = hour()%12;
+  byte Minutes = minute();
+  byte Seconds = second();
+  byte big_tick = 15;
+  byte small_tick = 5;
+
+  //hack for sub-second calculations.... reset when first time new second begins..
+  if (cooling != Seconds) maxtime = counter20ms;
+  cooling = Seconds;
+  Plugin_124_resetAndBlack();
+
+  for (int i = 0; i < (60/small_tick); i++) {
+    if (i%(big_tick/small_tick) == 0) Plugin_124_pixels->SetPixelColor((i*pixelCount*small_tick/60)%pixelCount, rgb_tick_b);
+    else Plugin_124_pixels->SetPixelColor((i*pixelCount*small_tick/60)%pixelCount, rgb_tick_s);
+  }
+
+
+  for(int i = 0; i < pixelCount; i++ ) {
+    if ( round((((float)Seconds + ((float)counter20ms-(float)maxtime)/50.0) * (float)pixelCount)/60.0 ) == i ) Plugin_124_pixels->SetPixelColor(i, rgb_s);
+    else if ( round((((float)Minutes * 60.0)+(float)Seconds)/60.0 * (float)pixelCount / 60.0) == i ) {
+      Plugin_124_pixels->SetPixelColor(i, rgb_m);
+    }
+    else if ( round(((float)Hours+(float)Minutes/60) * (float)pixelCount / 12.0)  == i ) {
+      Plugin_124_pixels->SetPixelColor(i, rgb_h);
+      Plugin_124_pixels->SetPixelColor((i+1)%pixelCount, rgb_h);
+      Plugin_124_pixels->SetPixelColor((i-1+pixelCount)%pixelCount, rgb_h);
+    }
+  }
+}
+
+
+void Plugin_124_resetAndBlack() {
+  for (int i = 0; i < pixelCount; i++) {
+    Plugin_124_pixels->SetPixelColor(i, RgbColor(0, 0, 0));
+  }
 }
 
 
 int32_t rgbStr2Num(String rgbStr) {
-	int32_t rgbDec = (int) strtol( &rgbStr[0], NULL, 16);
-	return rgbDec;
+  int32_t rgbDec = (int) strtol( &rgbStr[0], NULL, 16);
+  return rgbDec;
 }
 
-
 void hex2rgb(String hexcolor) {
-	colorStr = hexcolor;
-	rgb = RgbColor ( rgbStr2Num(hexcolor) >> 16, rgbStr2Num(hexcolor) >> 8, rgbStr2Num(hexcolor) );
+  colorStr = hexcolor;
+  rgb = RgbColor ( rgbStr2Num(hexcolor) >> 16, rgbStr2Num(hexcolor) >> 8, rgbStr2Num(hexcolor) );
 }
 
 void hex2rrggbb(String hexcolor) {
-	backgroundcolorStr = hexcolor;
-	rrggbb = RgbColor ( rgbStr2Num(hexcolor) >> 16, rgbStr2Num(hexcolor) >> 8, rgbStr2Num(hexcolor) );
+  backgroundcolorStr = hexcolor;
+  rrggbb = RgbColor ( rgbStr2Num(hexcolor) >> 16, rgbStr2Num(hexcolor) >> 8, rgbStr2Num(hexcolor) );
 }
 
 void hex2rgb_pixel(String hexcolor) {
-	colorStr = hexcolor;
-	for ( int i = 0; i < pixelCount; i++) {
-		rgb_target[i] = RgbColor ( rgbStr2Num(hexcolor) >> 16, rgbStr2Num(hexcolor) >> 8, rgbStr2Num(hexcolor) );
-	}
+  colorStr = hexcolor;
+  for ( int i = 0; i < pixelCount; i++) {
+    rgb_target[i] = RgbColor ( rgbStr2Num(hexcolor) >> 16, rgbStr2Num(hexcolor) >> 8, rgbStr2Num(hexcolor) );
+  }
 }
 
 // ---------------------------------------------------------------------------------
 // ------------------------------ JsonResponse -------------------------------------
 // ---------------------------------------------------------------------------------
 void NeoPixelSendStatus(byte eventSource) {
-	String log = String(F("NeoPixelBusFX: Set ")) + rgb.R
-	+ String(F("/")) + rgb.G + String(F("/")) + rgb.B;
-	addLog(LOG_LEVEL_INFO, log);
+  String log = String(F("NeoPixelBusFX: Set ")) + rgb.R
+  + String(F("/")) + rgb.G + String(F("/")) + rgb.B;
+  addLog(LOG_LEVEL_INFO, log);
 
-	String json;
-	printToWebJSON = true;
-	json += F("{\n");
-	json += F("\"plugin\": \"124");
-	json += F("\",\n\"mode\": \"");
-	json += modeName[mode];
-	json += F("\",\n\"lastmode\": \"");
-	json += modeName[savemode];
-	json += F("\",\n\"fadetime\": \"");
-	json += fadetime;
-	json += F("\",\n\"fadedelay\": \"");
-	json += fadedelay;
-	json += F("\",\n\"dim\": \"");
-	json += Plugin_124_pixels->GetBrightness();
-	json += F("\",\n\"rgb\": \"");
-	json += colorStr;
-	json += F("\",\n\"bgcolor\": \"");
-	json += backgroundcolorStr;
-	json += F("\",\n\"pixelcount\": \"");
-	json += pixelCount;
-	json += F("\"\n}\n");
-	SendStatus(eventSource, json); // send http response to controller (JSON format)
+  String json;
+  printToWebJSON = true;
+  json += F("{\n");
+  json += F("\"plugin\": \"124");
+  json += F("\",\n\"mode\": \"");
+  json += modeName[mode];
+  json += F("\",\n\"lastmode\": \"");
+  json += modeName[savemode];
+  json += F("\",\n\"fadetime\": \"");
+  json += fadetime;
+  json += F("\",\n\"fadedelay\": \"");
+  json += fadedelay;
+  json += F("\",\n\"dim\": \"");
+  json += Plugin_124_pixels->GetBrightness();
+  json += F("\",\n\"rgb\": \"");
+  json += colorStr;
+  json += F("\",\n\"bgcolor\": \"");
+  json += backgroundcolorStr;
+  json += F("\",\n\"pixelcount\": \"");
+  json += pixelCount;
+  json += F("\"\n}\n");
+  SendStatus(eventSource, json); // send http response to controller (JSON format)
 }
