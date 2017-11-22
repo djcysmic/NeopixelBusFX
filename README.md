@@ -50,6 +50,8 @@ nfx fire [fps] [brightness] [cooling] [sparking]<br>
 nfx faketv [startpixel] [endpixel]<br>
 Paste faketv.h in ./src<br>
 
+nfx simpleclock [bigtickcolor] [smalltickcolor] [hourcolor] [minutecolor] [secondcolor]<br>
+
 nfx stop<br>
 o stops the effect<br>
 
