@@ -93,13 +93,38 @@ Thank you to all developers
 
 #define SPEED_MAX 50
 #define ARRAYSIZE 300 //Max LED Count
+
+//Choose your color order below:
+
+#define GRB //should be standard - SK6812(grb), WS2811, and WS2812
+//#define GRBW //This is used for SK6812rgbw pixels that have the separate white led in them.
+//#define RGB //some older pixels
+//#define RGBW //A four element color in the order of Red, Green, Blue, and then White. A common four element format.
+//#define BRG //A three element color in the order of Blue, Red, and then Green.
+//#define RBG //A three element color in the order of Red, Blue, and then Green.
+
 #define NEOPIXEL_LIB NeoPixelBrightnessBus // Neopixel library type
-#define FEATURE NeoGrbFeature //NeoBrgFeature //NeoRgbFeature //Color order
 #define METHOD NeoEsp8266Uart800KbpsMethod //GPIO2 - use NeoEsp8266Dma800KbpsMethod for GPIO3(TX)
+
+#if defined GRB
+  #define FEATURE NeoGrbFeature
+#elif defined GRBW
+  #define FEATURE NeoGrbwFeature
+#elif defined RGB
+  #define FEATURE NeoRgbFeature
+#elif defined RGBW
+  #define FEATURE NeoRgbwFeature
+#elif defined BRG
+  #define FEATURE NeoBrgFeature
+#elif defined RBG
+  #define FEATURE NeoRbgFeature
+#else
+  #define FEATURE NeoGrbFeature
+#endif
 
 #define  numPixels (sizeof(ftv_colors) / sizeof(ftv_colors[0]))
 
-NEOPIXEL_LIB<FEATURE, METHOD> *Plugin_124_pixels;
+NEOPIXEL_LIB<FEATURE, METHOD>* Plugin_124_pixels = NULL;
 
 const float pi = 3.1415926535897932384626433832795;
 
@@ -113,6 +138,16 @@ colorcount;
 
 uint16_t ftv_pr = 0, ftv_pg = 0, ftv_pb = 0; // Prev R, G, B;
 
+#if defined(RGBW) || defined(GRBW)
+RgbwColor rgb_target[ARRAYSIZE],
+rgb_old[ARRAYSIZE],
+rgb, rrggbb,
+rgb_tick_b = HtmlColor(0x505050),
+rgb_tick_s = HtmlColor(0x101010),
+rgb_m = HtmlColor(0x00FF00),
+rgb_h = HtmlColor(0x0000FF),
+rgb_s = HtmlColor(0xFF0000);
+#else
 RgbColor rgb_target[ARRAYSIZE],
 rgb_old[ARRAYSIZE],
 rgb, rrggbb,
@@ -121,6 +156,7 @@ rgb_tick_s = HtmlColor(0x101010),
 rgb_m = HtmlColor(0x00FF00),
 rgb_h = HtmlColor(0x0000FF),
 rgb_s = HtmlColor(0xFF0000);
+#endif
 
 int16_t pixelCount = ARRAYSIZE,
 fadedelay = 20;
@@ -317,7 +353,7 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
               rgb_old[pixel] = Plugin_124_pixels->GetPixelColor(pixel);
             } else if ( subCommand == F("off") ) {    // switch off
               rgb_old[pixel] = Plugin_124_pixels->GetPixelColor(pixel);
-              rgb_target[pixel] = RgbColor(0,0,0);
+              rgb_target[pixel] = RgbColor(0);
             }
           }
 
@@ -604,6 +640,25 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
         else if (subCommand == F("simpleclock")) {
           mode = SimpleClock;
 
+          #if defined(RGBW) || defined(GRBW)
+          rgb_tick_s = (parseString(string, 3) == "")
+          ? rgb_tick_s
+          : RgbwColor ( rgbStr2Num(parseString(string, 3)) >> 24, rgbStr2Num(parseString(string, 3)) >> 16, rgbStr2Num(parseString(string, 3)) >> 8, rgbStr2Num(parseString(string, 3)));
+           rgb_tick_b = (parseString(string, 4) == "")
+          ? rgb_tick_b
+          : RgbwColor ( rgbStr2Num(parseString(string, 4)) >> 24, rgbStr2Num(parseString(string, 4)) >> 16, rgbStr2Num(parseString(string, 4)) >> 8, rgbStr2Num(parseString(string, 4)));
+           rgb_h = (parseString(string, 5) == "")
+          ? rgb_h
+          : RgbwColor ( rgbStr2Num(parseString(string, 5)) >> 24, rgbStr2Num(parseString(string, 5)) >> 16, rgbStr2Num(parseString(string, 5)) >> 8, rgbStr2Num(parseString(string, 5)));
+           rgb_m = (parseString(string, 6) == "")
+          ? rgb_m
+          : RgbwColor ( rgbStr2Num(parseString(string, 6)) >> 24, rgbStr2Num(parseString(string, 6)) >> 16, rgbStr2Num(parseString(string, 6)) >> 8, rgbStr2Num(parseString(string, 6)));
+           rgb_s = (parseString(string, 7) == "")
+          ? rgb_s
+          : RgbwColor ( rgbStr2Num(parseString(string, 7)) >> 24, rgbStr2Num(parseString(string, 7)) >> 16, rgbStr2Num(parseString(string, 7)) >> 8, rgbStr2Num(parseString(string, 7)));
+
+          #else
+
           rgb_tick_s = (parseString(string, 3) == "")
           ? rgb_tick_s
           : RgbColor ( rgbStr2Num(parseString(string, 3)) >> 16, rgbStr2Num(parseString(string, 3)) >> 8, rgbStr2Num(parseString(string, 3)));
@@ -619,6 +674,7 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
            rgb_s = (parseString(string, 7) == "")
           ? rgb_s
           : RgbColor ( rgbStr2Num(parseString(string, 7)) >> 16, rgbStr2Num(parseString(string, 7)) >> 8, rgbStr2Num(parseString(string, 7)));
+          #endif
         }
 
         else if (subCommand == F("stop")) {
@@ -769,11 +825,17 @@ for (int pixel = 0; pixel < pixelCount; pixel++){
   progress = (progress < 0) ? 0 : progress;
   progress = (progress > 1) ? 1 : progress;
 
-  RgbColor updatedColor = RgbColor::LinearBlend(
-    rgb_old[pixel], rgb_target[pixel],
-    progress);
+  #if defined(RGBW) || defined(GRBW)
+    RgbwColor updatedColor = RgbwColor::LinearBlend(
+      rgb_old[pixel], rgb_target[pixel],
+      progress);
+  #else
+    RgbColor updatedColor = RgbColor::LinearBlend(
+      rgb_old[pixel], rgb_target[pixel],
+      progress);
+  #endif
 
-    if ( counter20ms > maxtime && Plugin_124_pixels->GetPixelColor(pixel).R == 0 && Plugin_124_pixels->GetPixelColor(pixel).G == 0 && Plugin_124_pixels->GetPixelColor(pixel).B == 0) {
+    if ( counter20ms > maxtime && Plugin_124_pixels->GetPixelColor(pixel).CalculateBrightness() == 0) {
       mode = Off;
     } else if ( counter20ms > maxtime ) {
       mode = On;
@@ -793,9 +855,15 @@ for(uint8_t i = 0; i < difference; i++)
   progress = (progress >= 1) ? 1 : progress;
   progress = (progress <= 0) ? 0 : progress;
 
-  RgbColor updatedColor = RgbColor::LinearBlend(
-    rgb, rrggbb,
-    progress);
+  #if defined(RGBW) || defined(GRBW)
+    RgbwColor updatedColor = RgbwColor::LinearBlend(
+      rgb, rrggbb,
+      progress);
+  #else
+    RgbColor updatedColor = RgbColor::LinearBlend(
+      rgb, rrggbb,
+      progress);
+  #endif
 
     Plugin_124_pixels->SetPixelColor((i + startpixel)%pixelCount, updatedColor);
   }
@@ -944,12 +1012,25 @@ void kitt(void) {
   if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0)
   {
     for(uint16_t i=0; i < pixelCount; i++) {
-      RgbColor px_rgb = Plugin_124_pixels->GetPixelColor(i);
 
-      // fade out (divide by 2)
-      px_rgb.R = px_rgb.R >> 1;
-      px_rgb.G = px_rgb.G >> 1;
-      px_rgb.B = px_rgb.B >> 1;
+      #if defined(RGBW) || defined(GRBW)
+        RgbwColor px_rgb = Plugin_124_pixels->GetPixelColor(i);
+
+        // fade out (divide by 2)
+        px_rgb.R = px_rgb.R >> 1;
+        px_rgb.G = px_rgb.G >> 1;
+        px_rgb.B = px_rgb.B >> 1;
+        px_rgb.W = px_rgb.W >> 1;
+
+      #else
+
+        RgbColor px_rgb = Plugin_124_pixels->GetPixelColor(i);
+
+        // fade out (divide by 2)
+        px_rgb.R = px_rgb.R >> 1;
+        px_rgb.G = px_rgb.G >> 1;
+        px_rgb.B = px_rgb.B >> 1;
+      #endif
 
       Plugin_124_pixels->SetPixelColor(i, px_rgb);
     }
@@ -978,29 +1059,50 @@ void comet(void) {
 
       if (speed > 0) {
 
-        byte px_r = Plugin_124_pixels->GetPixelColor(i).R;
-        byte px_g = Plugin_124_pixels->GetPixelColor(i).G;
-        byte px_b = Plugin_124_pixels->GetPixelColor(i).B;
+        #if defined(RGBW) || defined(GRBW)
+          RgbwColor px_rgb = Plugin_124_pixels->GetPixelColor(i);
 
-        // fade out (divide by 2)
-        px_r = px_r >> 1;
-        px_g = px_g >> 1;
-        px_b = px_b >> 1;
+          // fade out (divide by 2)
+          px_rgb.R = px_rgb.R >> 1;
+          px_rgb.G = px_rgb.G >> 1;
+          px_rgb.B = px_rgb.B >> 1;
+          px_rgb.W = px_rgb.W >> 1;
 
-        Plugin_124_pixels->SetPixelColor(i, RgbColor(px_r, px_g, px_b));
+        #else
+
+          RgbColor px_rgb = Plugin_124_pixels->GetPixelColor(i);
+
+          // fade out (divide by 2)
+          px_rgb.R = px_rgb.R >> 1;
+          px_rgb.G = px_rgb.G >> 1;
+          px_rgb.B = px_rgb.B >> 1;
+        #endif
+
+        Plugin_124_pixels->SetPixelColor(i, px_rgb);
 
       } else {
 
-        byte px_r = Plugin_124_pixels->GetPixelColor(pixelCount -i -1).R;
-        byte px_g = Plugin_124_pixels->GetPixelColor(pixelCount -i -1).G;
-        byte px_b = Plugin_124_pixels->GetPixelColor(pixelCount -i -1).B;
 
-        // fade out (divide by 2)
-        px_r = px_r >> 1;
-        px_g = px_g >> 1;
-        px_b = px_b >> 1;
+        #if defined(RGBW) || defined(GRBW)
+          RgbwColor px_rgb = Plugin_124_pixels->GetPixelColor(pixelCount -i -1);
 
-        Plugin_124_pixels->SetPixelColor(pixelCount -i -1, RgbColor(px_r, px_g, px_b));
+          // fade out (divide by 2)
+          px_rgb.R = px_rgb.R >> 1;
+          px_rgb.G = px_rgb.G >> 1;
+          px_rgb.B = px_rgb.B >> 1;
+          px_rgb.W = px_rgb.W >> 1;
+
+        #else
+
+          RgbColor px_rgb = Plugin_124_pixels->GetPixelColor(pixelCount -i -1);
+
+          // fade out (divide by 2)
+          px_rgb.R = px_rgb.R >> 1;
+          px_rgb.G = px_rgb.G >> 1;
+          px_rgb.B = px_rgb.B >> 1;
+        #endif
+
+        Plugin_124_pixels->SetPixelColor(pixelCount -i -1, px_rgb);
       }
     }
 
@@ -1077,7 +1179,7 @@ void dualscan(void) {
 
 /*
 * Blink several LEDs on, reset, repeat.
-* Inspired by www.tweaking4all.com/hardware/arduino/adruino-led-strip-effects/
+* Inspired by www.tweaking4all.com/hardware/arduino/arduino-led-strip-effects/
 */
 void twinkle(void) {
 
@@ -1107,16 +1209,26 @@ void twinklefade(void) {
   {
     for(uint16_t i=0; i < pixelCount; i++) {
 
-      byte px_r = Plugin_124_pixels->GetPixelColor(pixelCount -i -1).R;
-      byte px_g = Plugin_124_pixels->GetPixelColor(pixelCount -i -1).G;
-      byte px_b = Plugin_124_pixels->GetPixelColor(pixelCount -i -1).B;
+      #if defined(RGBW) || defined(GRBW)
+        RgbwColor px_rgb = Plugin_124_pixels->GetPixelColor(pixelCount -i -1);
 
-      // fade out (divide by 2)
-      px_r = px_r >> 1;
-      px_g = px_g >> 1;
-      px_b = px_b >> 1;
+        // fade out (divide by 2)
+        px_rgb.R = px_rgb.R >> 1;
+        px_rgb.G = px_rgb.G >> 1;
+        px_rgb.B = px_rgb.B >> 1;
+        px_rgb.W = px_rgb.W >> 1;
 
-      Plugin_124_pixels->SetPixelColor(i, RgbColor(px_r, px_g, px_b));
+      #else
+
+        RgbColor px_rgb = Plugin_124_pixels->GetPixelColor(pixelCount -i -1);
+
+        // fade out (divide by 2)
+        px_rgb.R = px_rgb.R >> 1;
+        px_rgb.G = px_rgb.G >> 1;
+        px_rgb.B = px_rgb.B >> 1;
+      #endif
+
+      Plugin_124_pixels->SetPixelColor(i, px_rgb);
     }
 
     if(random(count) < 50) {
@@ -1203,7 +1315,7 @@ void Plugin_124_simpleclock()
   //hack for sub-second calculations.... reset when first time new second begins..
   if (cooling != Seconds) maxtime = counter20ms;
   cooling = Seconds;
-  Plugin_124_resetAndBlack();
+  Plugin_124_pixels->ClearTo(RgbColor(0));
 
   for (int i = 0; i < (60/small_tick); i++) {
     if (i%(big_tick/small_tick) == 0) Plugin_124_pixels->SetPixelColor((i*pixelCount*small_tick/60)%pixelCount, rgb_tick_b);
@@ -1225,32 +1337,37 @@ void Plugin_124_simpleclock()
 }
 
 
-void Plugin_124_resetAndBlack() {
-  for (int i = 0; i < pixelCount; i++) {
-    Plugin_124_pixels->SetPixelColor(i, RgbColor(0, 0, 0));
-  }
-}
-
-
-int32_t rgbStr2Num(String rgbStr) {
-  int32_t rgbDec = (int) strtol( &rgbStr[0], NULL, 16);
+uint32_t rgbStr2Num(String rgbStr) {
+  uint32_t rgbDec = (int) strtoul( &rgbStr[0], NULL, 16);
   return rgbDec;
 }
 
 void hex2rgb(String hexcolor) {
   colorStr = hexcolor;
-  rgb = RgbColor ( rgbStr2Num(hexcolor) >> 16, rgbStr2Num(hexcolor) >> 8, rgbStr2Num(hexcolor) );
+  #if defined(RGBW) || defined(GRBW)
+    rgb = RgbwColor ( rgbStr2Num(hexcolor) >> 24, rgbStr2Num(hexcolor) >> 16, rgbStr2Num(hexcolor) >> 8, rgbStr2Num(hexcolor) );
+  #else
+    rgb = RgbColor ( rgbStr2Num(hexcolor) >> 16, rgbStr2Num(hexcolor) >> 8, rgbStr2Num(hexcolor) );
+  #endif
 }
 
 void hex2rrggbb(String hexcolor) {
   backgroundcolorStr = hexcolor;
-  rrggbb = RgbColor ( rgbStr2Num(hexcolor) >> 16, rgbStr2Num(hexcolor) >> 8, rgbStr2Num(hexcolor) );
+  #if defined(RGBW) || defined(GRBW)
+    rrggbb = RgbwColor ( rgbStr2Num(hexcolor) >> 24, rgbStr2Num(hexcolor) >> 16, rgbStr2Num(hexcolor) >> 8, rgbStr2Num(hexcolor) );
+  #else
+    rrggbb = RgbColor ( rgbStr2Num(hexcolor) >> 16, rgbStr2Num(hexcolor) >> 8, rgbStr2Num(hexcolor) );
+  #endif
 }
 
 void hex2rgb_pixel(String hexcolor) {
   colorStr = hexcolor;
   for ( int i = 0; i < pixelCount; i++) {
-    rgb_target[i] = RgbColor ( rgbStr2Num(hexcolor) >> 16, rgbStr2Num(hexcolor) >> 8, rgbStr2Num(hexcolor) );
+    #if defined(RGBW) || defined(GRBW)
+      rgb_target[i] = RgbwColor ( rgbStr2Num(hexcolor) >> 24, rgbStr2Num(hexcolor) >> 16, rgbStr2Num(hexcolor) >> 8, rgbStr2Num(hexcolor) );
+    #else
+      rgb_target[i] = RgbColor ( rgbStr2Num(hexcolor) >> 16, rgbStr2Num(hexcolor) >> 8, rgbStr2Num(hexcolor) );
+    #endif
   }
 }
 
