@@ -641,21 +641,45 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
           mode = SimpleClock;
 
           #if defined(RGBW) || defined(GRBW)
-          rgb_tick_s = (parseString(string, 3) == "")
-          ? rgb_tick_s
-          : RgbwColor ( rgbStr2Num(parseString(string, 3)) >> 24, rgbStr2Num(parseString(string, 3)) >> 16, rgbStr2Num(parseString(string, 3)) >> 8, rgbStr2Num(parseString(string, 3)));
-           rgb_tick_b = (parseString(string, 4) == "")
-          ? rgb_tick_b
-          : RgbwColor ( rgbStr2Num(parseString(string, 4)) >> 24, rgbStr2Num(parseString(string, 4)) >> 16, rgbStr2Num(parseString(string, 4)) >> 8, rgbStr2Num(parseString(string, 4)));
-           rgb_h = (parseString(string, 5) == "")
-          ? rgb_h
-          : RgbwColor ( rgbStr2Num(parseString(string, 5)) >> 24, rgbStr2Num(parseString(string, 5)) >> 16, rgbStr2Num(parseString(string, 5)) >> 8, rgbStr2Num(parseString(string, 5)));
-           rgb_m = (parseString(string, 6) == "")
-          ? rgb_m
-          : RgbwColor ( rgbStr2Num(parseString(string, 6)) >> 24, rgbStr2Num(parseString(string, 6)) >> 16, rgbStr2Num(parseString(string, 6)) >> 8, rgbStr2Num(parseString(string, 6)));
-           rgb_s = (parseString(string, 7) == "")
-          ? rgb_s
-          : RgbwColor ( rgbStr2Num(parseString(string, 7)) >> 24, rgbStr2Num(parseString(string, 7)) >> 16, rgbStr2Num(parseString(string, 7)) >> 8, rgbStr2Num(parseString(string, 7)));
+          if (parseString(string, 3) != "") {
+            if (parseString(string, 3).length() <= 6) {
+              rgb_tick_s = RgbwColor ( rgbStr2Num(parseString(string, 3)) >> 16, rgbStr2Num(parseString(string, 3)) >> 8, rgbStr2Num(parseString(string, 3)));
+            } else {
+              rgb_tick_s = RgbwColor ( rgbStr2Num(parseString(string, 3)) >> 24, rgbStr2Num(parseString(string, 3)) >> 16, rgbStr2Num(parseString(string, 3)) >> 8, rgbStr2Num(parseString(string, 3)));
+            }
+          }
+
+          if (parseString(string, 4) != "") {
+            if (parseString(string, 4).length() <= 6) {
+              rgb_tick_b = RgbwColor ( rgbStr2Num(parseString(string, 4)) >> 16, rgbStr2Num(parseString(string, 4)) >> 8, rgbStr2Num(parseString(string, 4)));
+            } else {
+              rgb_tick_b = RgbwColor ( rgbStr2Num(parseString(string, 4)) >> 24, rgbStr2Num(parseString(string, 4)) >> 16, rgbStr2Num(parseString(string, 4)) >> 8, rgbStr2Num(parseString(string, 4)));
+            }
+          }
+
+          if (parseString(string, 5) != "") {
+            if (parseString(string, 5).length() <= 6) {
+              rgb_h = RgbwColor ( rgbStr2Num(parseString(string, 5)) >> 16, rgbStr2Num(parseString(string, 5)) >> 8, rgbStr2Num(parseString(string, 5)));
+            } else {
+              rgb_h = RgbwColor ( rgbStr2Num(parseString(string, 5)) >> 24, rgbStr2Num(parseString(string, 5)) >> 16, rgbStr2Num(parseString(string, 5)) >> 8, rgbStr2Num(parseString(string, 5)));
+            }
+          }
+
+          if (parseString(string, 6) != "") {
+            if (parseString(string, 6).length() <= 6) {
+              rgb_m = RgbwColor ( rgbStr2Num(parseString(string, 6)) >> 16, rgbStr2Num(parseString(string, 6)) >> 8, rgbStr2Num(parseString(string, 6)));
+            } else {
+              rgb_m = RgbwColor ( rgbStr2Num(parseString(string, 6)) >> 24, rgbStr2Num(parseString(string, 6)) >> 16, rgbStr2Num(parseString(string, 6)) >> 8, rgbStr2Num(parseString(string, 6)));
+            }
+          }
+
+          if (parseString(string, 7) != "") {
+            if (parseString(string, 7).length() <= 6) {
+              rgb_s = RgbwColor ( rgbStr2Num(parseString(string, 7)) >> 16, rgbStr2Num(parseString(string, 7)) >> 8, rgbStr2Num(parseString(string, 7)));
+            } else {
+              rgb_s = RgbwColor ( rgbStr2Num(parseString(string, 7)) >> 24, rgbStr2Num(parseString(string, 7)) >> 16, rgbStr2Num(parseString(string, 7)) >> 8, rgbStr2Num(parseString(string, 7)));
+            }
+          }
 
           #else
 
@@ -1345,7 +1369,9 @@ uint32_t rgbStr2Num(String rgbStr) {
 void hex2rgb(String hexcolor) {
   colorStr = hexcolor;
   #if defined(RGBW) || defined(GRBW)
-    rgb = RgbwColor ( rgbStr2Num(hexcolor) >> 24, rgbStr2Num(hexcolor) >> 16, rgbStr2Num(hexcolor) >> 8, rgbStr2Num(hexcolor) );
+    hexcolor.length() <= 6
+    ? rgb = RgbColor ( rgbStr2Num(hexcolor) >> 16, rgbStr2Num(hexcolor) >> 8, rgbStr2Num(hexcolor) )
+    : rgb = RgbwColor ( rgbStr2Num(hexcolor) >> 24, rgbStr2Num(hexcolor) >> 16, rgbStr2Num(hexcolor) >> 8, rgbStr2Num(hexcolor) );
   #else
     rgb = RgbColor ( rgbStr2Num(hexcolor) >> 16, rgbStr2Num(hexcolor) >> 8, rgbStr2Num(hexcolor) );
   #endif
@@ -1354,7 +1380,9 @@ void hex2rgb(String hexcolor) {
 void hex2rrggbb(String hexcolor) {
   backgroundcolorStr = hexcolor;
   #if defined(RGBW) || defined(GRBW)
-    rrggbb = RgbwColor ( rgbStr2Num(hexcolor) >> 24, rgbStr2Num(hexcolor) >> 16, rgbStr2Num(hexcolor) >> 8, rgbStr2Num(hexcolor) );
+    hexcolor.length() <= 6
+    ? rrggbb = RgbColor ( rgbStr2Num(hexcolor) >> 16, rgbStr2Num(hexcolor) >> 8, rgbStr2Num(hexcolor) )
+    : rrggbb = RgbwColor ( rgbStr2Num(hexcolor) >> 24, rgbStr2Num(hexcolor) >> 16, rgbStr2Num(hexcolor) >> 8, rgbStr2Num(hexcolor) );
   #else
     rrggbb = RgbColor ( rgbStr2Num(hexcolor) >> 16, rgbStr2Num(hexcolor) >> 8, rgbStr2Num(hexcolor) );
   #endif
@@ -1364,7 +1392,9 @@ void hex2rgb_pixel(String hexcolor) {
   colorStr = hexcolor;
   for ( int i = 0; i < pixelCount; i++) {
     #if defined(RGBW) || defined(GRBW)
-      rgb_target[i] = RgbwColor ( rgbStr2Num(hexcolor) >> 24, rgbStr2Num(hexcolor) >> 16, rgbStr2Num(hexcolor) >> 8, rgbStr2Num(hexcolor) );
+      hexcolor.length() <= 6
+      ? rgb_target[i] = RgbColor ( rgbStr2Num(hexcolor) >> 16, rgbStr2Num(hexcolor) >> 8, rgbStr2Num(hexcolor) )
+      : rgb_target[i] = RgbwColor ( rgbStr2Num(hexcolor) >> 24, rgbStr2Num(hexcolor) >> 16, rgbStr2Num(hexcolor) >> 8, rgbStr2Num(hexcolor) );
     #else
       rgb_target[i] = RgbColor ( rgbStr2Num(hexcolor) >> 16, rgbStr2Num(hexcolor) >> 8, rgbStr2Num(hexcolor) );
     #endif
