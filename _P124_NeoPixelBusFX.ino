@@ -134,9 +134,8 @@ r_pixel,
 startpixel,
 endpixel,
 difference,
+fps = 50,
 colorcount;
-
-uint16_t ftv_pr = 0, ftv_pg = 0, ftv_pb = 0; // Prev R, G, B;
 
 #if defined(RGBW) || defined(GRBW)
 RgbwColor rgb_target[ARRAYSIZE],
@@ -158,19 +157,24 @@ rgb_h = HtmlColor(0x0000FF),
 rgb_s = HtmlColor(0xFF0000);
 #endif
 
-int16_t pixelCount = ARRAYSIZE,
-fadedelay = 20;
+int16_t fadedelay = 20;
 
-int8_t  defaultspeed = 25,
+uint16_t pixelCount = ARRAYSIZE;
+
+int8_t defaultspeed = 25,
 rainbowspeed = 1,
 speed = 25,
-fps = 50,
 count = 1;
 
 uint32_t  _counter_mode_step = 0,
 fadetime = 1000,
 ftv_holdTime,
 pixelNum;
+
+uint16_t ftv_pr = 0, ftv_pg = 0, ftv_pb = 0; // Prev R, G, B;
+uint32_t ftv_totalTime, ftv_fadeTime, ftv_startTime, ftv_elapsed;
+uint16_t ftv_nr, ftv_ng, ftv_nb, ftv_r, ftv_g, ftv_b, ftv_i;
+uint8_t  ftv_hi, ftv_lo, ftv_r8, ftv_g8, ftv_b8, ftv_frac;
 
 String colorStr,
 backgroundcolorStr;
@@ -376,7 +380,7 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
 
           hex2rgb(parseString(string, 5));
 // changed SMY
-          for (int i = 0; i < ( parseString(string, 4).toInt()-parseString(string, 3).toInt() + pixelCount) % pixelCount ; i++){
+          for (int i = 0; i <= ( parseString(string, 4).toInt()-parseString(string, 3).toInt() + pixelCount) % pixelCount ; i++){
             Plugin_124_pixels->SetPixelColor((i + parseString(string, 3).toInt() - 1) % pixelCount, rgb);
           }
         }
@@ -417,8 +421,6 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
           ? fadedelay
           : parseString(string, 5).toInt();
 
-          uint8_t r_pixel;
-
           for (int pixel = 0; pixel < pixelCount; pixel++){
 
             r_pixel = (fadedelay < 0)
@@ -450,8 +452,8 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
           ? 0
           : parseString(string, 5).toInt() - 1;
           endpixel = (parseString(string, 6) == "")
-          ? pixelCount
-          : parseString(string, 6).toInt();
+          ? pixelCount - 1
+          : parseString(string, 6).toInt() - 1;
         }
 
         else if (subCommand == F("kitt")) {
@@ -872,7 +874,7 @@ for (int pixel = 0; pixel < pixelCount; pixel++){
 void colorfade(void) {
 float progress = 0;
 difference = (endpixel - startpixel + pixelCount) % pixelCount;
-for(uint8_t i = 0; i < difference; i++)
+for(uint8_t i = 0; i <= difference; i++)
 {
 
   progress = (float) i / ( difference - 1 );
@@ -941,9 +943,6 @@ void dualwipe(void) {
 void faketv(void) {
   if (counter20ms >= ftv_holdTime) {
 
-    uint32_t ftv_totalTime, ftv_fadeTime, ftv_startTime, ftv_elapsed;
-    uint16_t ftv_nr, ftv_ng, ftv_nb, ftv_r, ftv_g, ftv_b, ftv_i;
-    uint8_t  ftv_hi, ftv_lo, ftv_r8, ftv_g8, ftv_b8, ftv_frac;
     difference = abs(endpixel - startpixel);
 
     if (ftv_elapsed >= ftv_fadeTime) {
@@ -1161,7 +1160,7 @@ void theatre(void) {
 void scan(void) {
   if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
   {
-    if(_counter_mode_step > (pixelCount*2) - 2) {
+    if(_counter_mode_step > uint8_t((pixelCount*2) - 2)) {
       _counter_mode_step = 0;
     }
     _counter_mode_step++;
@@ -1183,7 +1182,7 @@ void scan(void) {
 void dualscan(void) {
 
   if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0) {
-    if(_counter_mode_step > (pixelCount*2) - 2) {
+    if(_counter_mode_step > uint8_t((pixelCount*2) - 2)) {
       _counter_mode_step = 0;
     }
 
@@ -1277,7 +1276,7 @@ void sparkle(void) {
 }
 
 //Fire
-long fireTimer;
+unsigned long fireTimer;
 CRGB leds[ARRAYSIZE];
 
 void fire(void) {
