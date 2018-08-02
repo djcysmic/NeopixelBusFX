@@ -49,7 +49,7 @@ nfx fire [fps] [brightness] [cooling] [sparking]
 
 nfx faketv [startpixel] [endpixel]
 
-nfx simpleclock [bigtickcolor] [smalltickcolor] [hourcolor] [minutecolor] [secondcolor]
+nfx simpleclock [bigtickcolor] [smalltickcolor] [hourcolor] [minutecolor] [secondcolor, set "off" to disable]
 
 
 nfx stop
@@ -180,6 +180,7 @@ String colorStr,
 backgroundcolorStr;
 
 bool gReverseDirection = false;
+bool rgb_s_off = false;
 
 byte cooling = 50,
 sparking = 120,
@@ -250,9 +251,8 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
 
     case PLUGIN_WEBFORM_LOAD:
     {
-      addFormNumericBox(string, F("Led Count"), F("plugin_124_leds"), Settings.TaskDevicePluginConfig[event->TaskIndex][0],1 ,999);
-      string += F("<br><br><span style=\"color:red\">Please connect stripe to GPIO2!</span>");
-
+      addHtml(F("<br><br><span style=\"color:red\">Please connect stripe to GPIO2!</span>"));
+      addFormNumericBox(F("Led Count"), F("plugin_124_leds"), Settings.TaskDevicePluginConfig[event->TaskIndex][0],1 ,999);
       success = true;
       break;
     }
@@ -676,9 +676,13 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
           }
 
           if (parseString(string, 7) != "") {
-            if (parseString(string, 7).length() <= 6) {
+            if (parseString(string, 7) == "off") {
+              rgb_s_off = true;
+            } else if (parseString(string, 7).length() <= 6) {
+              rgb_s_off = false;
               rgb_s = RgbwColor ( rgbStr2Num(parseString(string, 7)) >> 16, rgbStr2Num(parseString(string, 7)) >> 8, rgbStr2Num(parseString(string, 7)));
             } else {
+              rgb_s_off = false;
               rgb_s = RgbwColor ( rgbStr2Num(parseString(string, 7)) >> 24, rgbStr2Num(parseString(string, 7)) >> 16, rgbStr2Num(parseString(string, 7)) >> 8, rgbStr2Num(parseString(string, 7)));
             }
           }
@@ -697,9 +701,14 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
            rgb_m = (parseString(string, 6) == "")
           ? rgb_m
           : RgbColor ( rgbStr2Num(parseString(string, 6)) >> 16, rgbStr2Num(parseString(string, 6)) >> 8, rgbStr2Num(parseString(string, 6)));
-           rgb_s = (parseString(string, 7) == "")
-          ? rgb_s
-          : RgbColor ( rgbStr2Num(parseString(string, 7)) >> 16, rgbStr2Num(parseString(string, 7)) >> 8, rgbStr2Num(parseString(string, 7)));
+          if (parseString(string, 7) != "") {
+            if (parseString(string, 7) == "off") {
+              rgb_s_off = true;
+            } else {
+              rgb_s_off = false;
+              rgb_s = RgbColor ( rgbStr2Num(parseString(string, 7)) >> 16, rgbStr2Num(parseString(string, 7)) >> 8, rgbStr2Num(parseString(string, 7)));
+            }
+          }
           #endif
         }
 
@@ -1347,7 +1356,11 @@ void Plugin_124_simpleclock()
 
 
   for(int i = 0; i < pixelCount; i++ ) {
-    if ( round((((float)Seconds + ((float)counter20ms-(float)maxtime)/50.0) * (float)pixelCount)/60.0 ) == i ) Plugin_124_pixels->SetPixelColor(i, rgb_s);
+    if ( round((((float)Seconds + ((float)counter20ms-(float)maxtime)/50.0) * (float)pixelCount)/60.0 ) == i ) {
+      if ( rgb_s_off  == false ) {
+        Plugin_124_pixels->SetPixelColor(i, rgb_s);
+      }
+    }
     else if ( round((((float)Minutes * 60.0)+(float)Seconds)/60.0 * (float)pixelCount / 60.0) == i ) {
       Plugin_124_pixels->SetPixelColor(i, rgb_m);
     }
