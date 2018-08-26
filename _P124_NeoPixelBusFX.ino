@@ -1170,7 +1170,7 @@ void theatre(void) {
 void scan(void) {
   if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
   {
-    if(_counter_mode_step > uint8_t((pixelCount*2) - 2)) {
+    if(_counter_mode_step > uint16_t((pixelCount*2) - 2)) {
       _counter_mode_step = 0;
     }
     _counter_mode_step++;
@@ -1192,7 +1192,7 @@ void scan(void) {
 void dualscan(void) {
 
   if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0) {
-    if(_counter_mode_step > uint8_t((pixelCount*2) - 2)) {
+    if(_counter_mode_step > uint16_t((pixelCount*2) - 2)) {
       _counter_mode_step = 0;
     }
 
