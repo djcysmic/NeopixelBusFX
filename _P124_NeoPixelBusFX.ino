@@ -89,7 +89,6 @@ Thank you to all developers
 */
 
 #include <NeoPixelBrightnessBus.h>
-#include <FastLED.h> //for math operations in FireFX
 #include "faketv.h" //color pattern for FakeTV
 
 #define SPEED_MAX 50
@@ -1287,7 +1286,7 @@ void sparkle(void) {
 
 //Fire
 unsigned long fireTimer;
-CRGB leds[ARRAYSIZE];
+RgbColor leds[ARRAYSIZE];
 
 void fire(void) {
 
@@ -1297,11 +1296,76 @@ void fire(void) {
     RgbColor pixel;
 
     for (int i = 0; i < pixelCount; i++) {
-      pixel = RgbColor(leds[i].r, leds[i].g, leds[i].b);
+      pixel = leds[i];
       pixel = RgbColor::LinearBlend(pixel, RgbColor(0, 0, 0), (255 - brightness)/255.0);
       Plugin_124_pixels->SetPixelColor(i, pixel);
     }
   }
+}
+
+/// random number seed
+uint16_t rand16seed;// = RAND16_SEED;
+
+/// Generate an 8-bit random number
+uint8_t random8()
+{
+    rand16seed = (rand16seed * ((uint16_t)(2053))) + ((uint16_t)(13849));
+    // return the sum of the high and low bytes, for better
+    //  mixing and non-sequential correlation
+    return (uint8_t)(((uint8_t)(rand16seed & 0xFF)) +
+                     ((uint8_t)(rand16seed >> 8)));
+}
+
+/// Generate an 8-bit random number between 0 and lim
+/// @param lim the upper bound for the result
+uint8_t random8(uint8_t lim)
+{
+    uint8_t r = random8();
+    r = (r*lim) >> 8;
+    return r;
+}
+
+/// Generate an 8-bit random number in the given range
+/// @param min the lower bound for the random number
+/// @param lim the upper bound for the random number
+uint8_t random8(uint8_t min, uint8_t lim)
+{
+    uint8_t delta = lim - min;
+    uint8_t r = random8(delta) + min;
+    return r;
+}
+
+/// subtract one byte from another, saturating at 0x00
+/// @returns i - j with a floor of 0
+uint8_t qsub8( uint8_t i, uint8_t j)
+{
+  int t = i - j;
+  if( t < 0) t = 0;
+  return t;
+}
+
+/// add one byte to another, saturating at 0xFF
+/// @param i - first byte to add
+/// @param j - second byte to add
+/// @returns the sum of i & j, capped at 0xFF
+uint8_t qadd8( uint8_t i, uint8_t j)
+{
+  unsigned int t = i + j;
+  if( t > 255) t = 255;
+  return t;
+}
+
+///  The "video" version of scale8 guarantees that the output will
+///  be only be zero if one or both of the inputs are zero.  If both
+///  inputs are non-zero, the output is guaranteed to be non-zero.
+///  This makes for better 'video'/LED dimming, at the cost of
+///  several additional cycles.
+uint8_t scale8_video( uint8_t i, uint8_t scale)
+{
+  uint8_t j = (((int)i * (int)scale) >> 8) + ((i&&scale)?1:0);
+  // uint8_t nonzeroscale = (scale != 0) ? 1 : 0;
+  // uint8_t j = (i == 0) ? 0 : (((int)i * (int)(scale) ) >> 8) + nonzeroscale;
+  return j;
 }
 
 void Fire2012(void) {
@@ -1326,14 +1390,46 @@ void Fire2012(void) {
 
   // Step 4.  Map from heat cells to LED colors
   for ( int j = 0; j < pixelCount; j++) {
-    CRGB color = HeatColor( heat[j]);
+
+    RgbColor heatcolor;
+
+    // Scale 'heat' down from 0-255 to 0-191,
+    // which can then be easily divided into three
+    // equal 'thirds' of 64 units each.
+    uint8_t t192 = scale8_video( heat[j], 191);
+
+    // calculate a value that ramps up from
+    // zero to 255 in each 'third' of the scale.
+    uint8_t heatramp = t192 & 0x3F; // 0..63
+    heatramp <<= 2; // scale up to 0..252
+
+    // now figure out which third of the spectrum we're in:
+    if( t192 & 0x80) {
+        // we're in the hottest third
+        heatcolor.R = 255; // full red
+        heatcolor.G = 255; // full green
+        heatcolor.B = heatramp; // ramp up blue
+
+    } else if( t192 & 0x40 ) {
+        // we're in the middle third
+        heatcolor.R = 255; // full red
+        heatcolor.G = heatramp; // ramp up green
+        heatcolor.B = 0; // no blue
+
+    } else {
+        // we're in the coolest third
+        heatcolor.R = heatramp; // ramp up red
+        heatcolor.G = 0; // no green
+        heatcolor.B = 0; // no blue
+    }
+
     int pixelnumber;
     if ( gReverseDirection ) {
       pixelnumber = (pixelCount - 1) - j;
     } else {
       pixelnumber = j;
     }
-    leds[pixelnumber] = color;
+    leds[pixelnumber] = heatcolor;
   }
 }
 
