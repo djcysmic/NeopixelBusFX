@@ -128,7 +128,7 @@ NEOPIXEL_LIB<FEATURE, METHOD>* Plugin_124_pixels = NULL;
 
 const float pi = 3.1415926535897932384626433832795;
 
-uint8_t pos,
+uint16_t pos,
 color,
 r_pixel,
 startpixel,
@@ -173,8 +173,8 @@ pixelNum;
 
 uint16_t ftv_pr = 0, ftv_pg = 0, ftv_pb = 0; // Prev R, G, B;
 uint32_t ftv_totalTime, ftv_fadeTime, ftv_startTime, ftv_elapsed;
-uint16_t ftv_nr, ftv_ng, ftv_nb, ftv_r, ftv_g, ftv_b, ftv_i;
-uint8_t  ftv_hi, ftv_lo, ftv_r8, ftv_g8, ftv_b8, ftv_frac;
+uint16_t ftv_nr, ftv_ng, ftv_nb, ftv_r, ftv_g, ftv_b, ftv_i, ftv_frac;
+uint8_t  ftv_hi, ftv_lo, ftv_r8, ftv_g8, ftv_b8;
 
 String colorStr,
 backgroundcolorStr;
@@ -399,7 +399,7 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
         else if (subCommand == F("one")) {
           mode = On;
 
-          uint8_t pixnum = parseString(string, 3).toInt() - 1;
+          uint16_t pixnum = parseString(string, 3).toInt() - 1;
           hex2rgb(parseString(string, 4));
 
           Plugin_124_pixels->SetPixelColor(pixnum, rgb);
@@ -883,7 +883,7 @@ for (int pixel = 0; pixel < pixelCount; pixel++){
 void colorfade(void) {
 float progress = 0;
 difference = (endpixel - startpixel + pixelCount) % pixelCount;
-for(uint8_t i = 0; i <= difference; i++)
+for(uint16_t i = 0; i <= difference; i++)
 {
 
   progress = (float) i / ( difference - 1 );
@@ -981,7 +981,7 @@ void faketv(void) {
       ftv_r = map(ftv_elapsed, 0, ftv_fadeTime, ftv_pr, ftv_nr); // 16-bit interp
       ftv_g = map(ftv_elapsed, 0, ftv_fadeTime, ftv_pg, ftv_ng);
       ftv_b = map(ftv_elapsed, 0, ftv_fadeTime, ftv_pb, ftv_nb);
-    } else { // Avoid divide-by-zero in map()
+    } else { // Avoid divide-by-ftv_fraczero in map()
       ftv_r = ftv_nr;
       ftv_g = ftv_ng;
       ftv_b = ftv_nb;
@@ -991,7 +991,7 @@ void faketv(void) {
       ftv_r8   = ftv_r >> 8; // Quantize to 8-bit
       ftv_g8   = ftv_g >> 8;
       ftv_b8   = ftv_b >> 8;
-      ftv_frac = (ftv_i << 8) / difference; // LED index scaled to 0-255
+      ftv_frac = (ftv_i << 16) / difference; // LED index scaled to 0-65535 (16Bit)
       if((ftv_r8 < 255) && ((ftv_r & 0xFF) >= ftv_frac)) ftv_r8++; // Boost some fraction
       if((ftv_g8 < 255) && ((ftv_g & 0xFF) >= ftv_frac)) ftv_g8++; // of LEDs to handle
       if((ftv_b8 < 255) && ((ftv_b & 0xFF) >= ftv_frac)) ftv_b8++; // interp > 8bit
@@ -1536,6 +1536,8 @@ void NeoPixelSendStatus(byte eventSource) {
   json += colorStr;
   json += F("\",\n\"bgcolor\": \"");
   json += backgroundcolorStr;
+  json += F("\",\n\"count\": \"");
+  json += count;
   json += F("\",\n\"pixelcount\": \"");
   json += pixelCount;
   json += F("\"\n}\n");
