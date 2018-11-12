@@ -50,7 +50,7 @@ nfx fire [fps] [brightness] [cooling] [sparking]
 
 nfx faketv [startpixel] [endpixel]
 
-nfx simpleclock [bigtickcolor] [smalltickcolor] [hourcolor] [minutecolor] [secondcolor, set "off" to disable]
+nfx simpleclock [bigtickcolor] [smalltickcolor] [hourcolor] [minutecolor] [secondcolor, set "off" to disable] [backgroundcolor]
 
 
 nfx stop
@@ -687,18 +687,22 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
             }
           }
 
+          if (parseString(string, 8) != "") {
+            hex2rrggbb(parseString(string, 8));
+          }
+
           #else
 
           rgb_tick_s = (parseString(string, 3) == "")
           ? rgb_tick_s
           : RgbColor ( rgbStr2Num(parseString(string, 3)) >> 16, rgbStr2Num(parseString(string, 3)) >> 8, rgbStr2Num(parseString(string, 3)));
-           rgb_tick_b = (parseString(string, 4) == "")
+          rgb_tick_b = (parseString(string, 4) == "")
           ? rgb_tick_b
           : RgbColor ( rgbStr2Num(parseString(string, 4)) >> 16, rgbStr2Num(parseString(string, 4)) >> 8, rgbStr2Num(parseString(string, 4)));
-           rgb_h = (parseString(string, 5) == "")
+          rgb_h = (parseString(string, 5) == "")
           ? rgb_h
           : RgbColor ( rgbStr2Num(parseString(string, 5)) >> 16, rgbStr2Num(parseString(string, 5)) >> 8, rgbStr2Num(parseString(string, 5)));
-           rgb_m = (parseString(string, 6) == "")
+          rgb_m = (parseString(string, 6) == "")
           ? rgb_m
           : RgbColor ( rgbStr2Num(parseString(string, 6)) >> 16, rgbStr2Num(parseString(string, 6)) >> 8, rgbStr2Num(parseString(string, 6)));
           if (parseString(string, 7) != "") {
@@ -709,7 +713,11 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
               rgb_s = RgbColor ( rgbStr2Num(parseString(string, 7)) >> 16, rgbStr2Num(parseString(string, 7)) >> 8, rgbStr2Num(parseString(string, 7)));
             }
           }
+
+          if (parseString(string, 8) != "") hex2rrggbb(parseString(string, 8));
+          
           #endif
+
         }
 
         else if (subCommand == F("stop")) {
@@ -1444,7 +1452,7 @@ void Plugin_124_simpleclock()
   //hack for sub-second calculations.... reset when first time new second begins..
   if (cooling != Seconds) maxtime = counter20ms;
   cooling = Seconds;
-  Plugin_124_pixels->ClearTo(RgbColor(0));
+  Plugin_124_pixels->ClearTo(RgbColor(rrggbb));
 
   for (int i = 0; i < (60/small_tick); i++) {
     if (i%(big_tick/small_tick) == 0) Plugin_124_pixels->SetPixelColor((i*pixelCount*small_tick/60)%pixelCount, rgb_tick_b);
