@@ -68,12 +68,13 @@ Paste faketv.h in ./src<br>
 o startpixel default: 0<br>
 o endpixel default:pixelcount-1<br>
 
-nfx simpleclock [bigtickcolor] [smalltickcolor] [hourcolor] [minutecolor] [secondcolor]<br>
+nfx simpleclock [bigtickcolor] [smalltickcolor] [hourcolor] [minutecolor] [secondcolor] [backgroundcolor]<br>
 o bigtickcolor, default: 505050<br>
 o smalltickcolor, default: 101010<br>
 o hourcolor, default: 0000FF<br>
 o minutecolor, default: 00FF00<br>
 o secondcolor, default: FF0000 - color of the second hand - can be set to "off" to turn the second hand completly off<br>
+o backgroundcolor, default: 000000<br>
 
 nfx stop<br>
 o stops the effect<br>
