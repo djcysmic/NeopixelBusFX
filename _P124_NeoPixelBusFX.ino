@@ -1452,7 +1452,7 @@ void Plugin_124_simpleclock()
   //hack for sub-second calculations.... reset when first time new second begins..
   if (cooling != Seconds) maxtime = counter20ms;
   cooling = Seconds;
-  Plugin_124_pixels->ClearTo(RgbColor(rrggbb));
+  Plugin_124_pixels->ClearTo(rrggbb);
 
   for (int i = 0; i < (60/small_tick); i++) {
     if (i%(big_tick/small_tick) == 0) Plugin_124_pixels->SetPixelColor((i*pixelCount*small_tick/60)%pixelCount, rgb_tick_b);
