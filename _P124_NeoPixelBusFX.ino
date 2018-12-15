@@ -22,6 +22,8 @@ nfx all color [fadetime] [delay]
 nfx rgb color [fadetime] [delay]
 nfx fade color [fadetime] [delay]
 
+nfx hsv hue saturation brightness [fadetime] [delay]
+
 nfx colorfade startcolor endcolor [startpixel] [endpixel]
 
 nfx rainbow [speed]
@@ -47,6 +49,8 @@ nfx wipe color [dotcolor] [speed]
 nfx dualwipe [dotcolor] [speed]
 
 nfx fire [fps] [brightness] [cooling] [sparking]
+
+nfx fireflicker [intensity] [speed]
 
 nfx faketv [startpixel] [endpixel]
 
@@ -164,7 +168,8 @@ uint16_t pixelCount = ARRAYSIZE;
 int8_t defaultspeed = 25,
 rainbowspeed = 1,
 speed = 25,
-count = 1;
+count = 1,
+rev_intensity = 3;
 
 uint32_t  _counter_mode_step = 0,
 fadetime = 1000,
@@ -191,11 +196,11 @@ starttime[ARRAYSIZE],
 maxtime = 0;
 
 enum modetype {
-  Off, On, Fade, ColorFade, Rainbow, Kitt, Comet, Theatre, Scan, Dualscan, Twinkle, TwinkleFade, Sparkle, Fire, Wipe, Dualwipe, FakeTV, SimpleClock
+  Off, On, Fade, ColorFade, Rainbow, Kitt, Comet, Theatre, Scan, Dualscan, Twinkle, TwinkleFade, Sparkle, Fire, FireFlicker, Wipe, Dualwipe, FakeTV, SimpleClock
 };
 
 const char* modeName[] = {
-  "off", "on", "fade", "colorfade", "rainbow", "kitt", "comet", "theatre", "scan", "dualscan", "twinkle", "twinklefade", "sparkle", "fire", "wipe", "dualwipe", "faketv", "simpleclock"
+  "off", "on", "fade", "colorfade", "rainbow", "kitt", "comet", "theatre", "scan", "dualscan", "twinkle", "twinklefade", "sparkle", "fire", "fireflicker", "wipe", "dualwipe", "faketv", "simpleclock"
 };
 
 modetype mode,savemode,lastmode;
@@ -412,6 +417,7 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
             fadedelay = 0;
           }
 
+          hex2rgb(parseString(string, 3));
           hex2rgb_pixel(parseString(string, 3));
 
           fadetime = (parseString(string, 4) == "")
@@ -420,6 +426,41 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
           fadedelay = (parseString(string, 5) == "")
           ? fadedelay
           : parseString(string, 5).toInt();
+
+          for (int pixel = 0; pixel < pixelCount; pixel++){
+
+            r_pixel = (fadedelay < 0)
+            ? pixelCount - pixel - 1
+            : pixel;
+
+            starttime[r_pixel] = counter20ms + (pixel * abs(fadedelay) / 20);
+
+            rgb_old[pixel] = Plugin_124_pixels->GetPixelColor(pixel);
+          }
+          maxtime = starttime[r_pixel] + (fadetime / 20);
+        }
+
+        else if (subCommand == F("hsv")) {
+          mode = Fade;
+          fadedelay = 0;
+          rgb = RgbColor(HsbColor(parseString(string, 3).toFloat()/360, parseString(string, 4).toFloat()/100, parseString(string, 5).toFloat()/100));
+
+          colorStr = "";
+          rgb.R < 16 ? colorStr = "0":"";
+          colorStr += formatToHex(rgb.R,"");
+          rgb.G < 16 ? colorStr += "0":"";
+          colorStr += formatToHex(rgb.G,"");
+          rgb.B < 16 ? colorStr += "0":"";
+          colorStr += formatToHex(rgb.B,"");
+
+          hex2rgb_pixel(colorStr);
+
+          fadetime = (parseString(string, 6) == "")
+          ? fadetime
+          : parseString(string, 6).toInt();
+          fadedelay = (parseString(string, 7) == "")
+          ? fadedelay
+          : parseString(string, 7).toInt();
 
           for (int pixel = 0; pixel < pixelCount; pixel++){
 
@@ -639,6 +680,18 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
           : parseString(string, 6).toFloat();
         }
 
+        else if (subCommand == F("fireflicker")) {
+          mode = FireFlicker;
+
+          rev_intensity = (parseString(string, 3) == "")
+          ? rev_intensity
+          : parseString(string, 3).toInt();
+
+          speed = (parseString(string, 4) == "")
+          ? defaultspeed
+          : parseString(string, 4).toInt();
+        }
+
         else if (subCommand == F("simpleclock")) {
           mode = SimpleClock;
 
@@ -715,7 +768,7 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
           }
 
           if (parseString(string, 8) != "") hex2rrggbb(parseString(string, 8));
-          
+
           #endif
 
         }
@@ -737,7 +790,7 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
         && subCommand != F("kitt") && subCommand != F("comet")
         && subCommand != F("theatre") && subCommand != F("scan")
         && subCommand != F("dualscan") && subCommand != F("twinkle")
-        && subCommand != F("sparkle") && subCommand != F("fire")
+        && subCommand != F("sparkle") && subCommand != F("fire") && subCommand != F("fireflicker")
         && subCommand != F("twinklefade") && subCommand != F("stop")
         && subCommand != F("wipe") && subCommand != F("dualwipe")
         && subCommand != F("colorfade") && subCommand != F("simpleclock")
@@ -819,6 +872,10 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
 
         case Fire:
         fire();
+        break;
+
+        case FireFlicker:
+        fire_flicker();
         break;
 
         case Wipe:
@@ -1441,6 +1498,29 @@ void Fire2012(void) {
   }
 }
 
+/*
+ * Fire flicker function
+ */
+void fire_flicker() {
+  if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
+  {
+    byte w = 0; //(SEGMENT.colors[0] >> 24) & 0xFF;
+    byte r = 255; //(SEGMENT.colors[0] >> 16) & 0xFF;
+    byte g = 96; //(SEGMENT.colors[0] >>  8) & 0xFF;
+    byte b = 12; //(SEGMENT.colors[0]        & 0xFF);
+    byte lum = max(w, max(r, max(g, b))) / rev_intensity;
+    for(uint16_t i=0; i <= numPixels-1; i++) {
+      int flicker = random8(lum);
+
+      #if defined(RGBW) || defined(GRBW)
+        Plugin_124_pixels->SetPixelColor(i, RgbwColor (max(r - flicker, 0), max(g - flicker, 0), max(b - flicker, 0), max(w - flicker, 0));
+      #else
+        Plugin_124_pixels->SetPixelColor(i, RgbColor (max(r - flicker, 0), max(g - flicker, 0), max(b - flicker, 0)));
+      #endif
+    }
+  }
+}
+
 void Plugin_124_simpleclock()
 {
   byte Hours = hour()%12;
@@ -1542,10 +1622,18 @@ void NeoPixelSendStatus(byte eventSource) {
   json += Plugin_124_pixels->GetBrightness();
   json += F("\",\n\"rgb\": \"");
   json += colorStr;
+  json += F("\",\n\"hue\": \"");
+  json += toString((HsbColor(RgbColor(rgb.R,rgb.G,rgb.B)).H * 360),0);
+  json += F("\",\n\"saturation\": \"");
+  json += toString((HsbColor(RgbColor(rgb.R,rgb.G,rgb.B)).S * 100),0);
+  json += F("\",\n\"brightness\": \"");
+  json += toString((HsbColor(RgbColor(rgb.R,rgb.G,rgb.B)).B * 100),0);
   json += F("\",\n\"bgcolor\": \"");
   json += backgroundcolorStr;
   json += F("\",\n\"count\": \"");
   json += count;
+  json += F("\",\n\"speed\": \"");
+  json += speed;
   json += F("\",\n\"pixelcount\": \"");
   json += pixelCount;
   json += F("\"\n}\n");
