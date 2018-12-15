@@ -18,6 +18,8 @@ nfx all <i>color</i> [fadetime, default:1000] [delay +/-ms, default:20]<br>
 nfx rgb <i>color</i> [fadetime, default:1000] [delay +/-ms, default:20]<br>
 nfx fade <i>color</i> [fadetime, default:1000] [delay +/-ms, default:20]<br>
 
+nfx hsv <i>hue[0-360] saturation[0-100] brightness[0-100]</i> [fadetime, default:1000] [delay +/-ms, default:20]<br>
+
 nfx colorfade <i>startcolor endcolor</i> [startpixel] [endpixel]<br>
 o startpixel default: 0<br>
 o endpixel default:pixelcount-1<br>
@@ -62,6 +64,10 @@ o fps default: 50<br>
 o brightness 0-255, default: 31<br>
 o cooling 20-100, default: 50<br>
 o sparking 50-200, default: 120<br>
+
+nfx fireflicker [intensity] [speed]<br>
+o intensity default: 3<br>
+o speed +/- 0-50, default: 25<br>
 
 nfx faketv [startpixel] [endpixel]<br>
 Paste faketv.h in ./src<br>
