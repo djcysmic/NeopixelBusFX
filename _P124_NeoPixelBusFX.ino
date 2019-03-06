@@ -1513,7 +1513,7 @@ void fire_flicker() {
       int flicker = random8(lum);
 
       #if defined(RGBW) || defined(GRBW)
-        Plugin_124_pixels->SetPixelColor(i, RgbwColor (max(r - flicker, 0), max(g - flicker, 0), max(b - flicker, 0), max(w - flicker, 0));
+        Plugin_124_pixels->SetPixelColor(i, RgbwColor (max(r - flicker, 0), max(g - flicker, 0), max(b - flicker, 0), max(w - flicker, 0)));
       #else
         Plugin_124_pixels->SetPixelColor(i, RgbColor (max(r - flicker, 0), max(g - flicker, 0), max(b - flicker, 0)));
       #endif
