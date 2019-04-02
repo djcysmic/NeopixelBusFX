@@ -24,8 +24,8 @@ nfx colorfade <i>startcolor endcolor</i> [startpixel] [endpixel]<br>
 o startpixel default: 0<br>
 o endpixel default:pixelcount-1<br>
 
-nfx rainbow [speed]<br>
-o speed +/- 0-50, default: 1<br>
+nfx rainbow [speed] [fadetime, default:1000]<br>
+o speed +/- 0-50, default: 25<br>
 
 nfx kitt <i>color</i> [speed]<br>
 o speed +/- 0-50, default: 25<br>
