@@ -26,7 +26,7 @@ nfx hsv hue saturation brightness [fadetime] [delay]
 
 nfx colorfade startcolor endcolor [startpixel] [endpixel]
 
-nfx rainbow [speed]
+nfx rainbow [speed] [fadetime]
 
 nfx kitt color [speed]
 
@@ -108,7 +108,7 @@ Thank you to all developers
 //#define RBG //A three element color in the order of Red, Blue, and then Green.
 
 #define NEOPIXEL_LIB NeoPixelBrightnessBus // Neopixel library type
-#define METHOD NeoEsp8266Uart800KbpsMethod //GPIO2 - use NeoEsp8266Dma800KbpsMethod for GPIO3(TX)
+#define METHOD NeoEsp8266Uart1800KbpsMethod //GPIO2 - use NeoEsp8266Uart0800KbpsMethod for GPIO1(TX)
 
 #if defined GRB
   #define FEATURE NeoGrbFeature
@@ -186,6 +186,7 @@ backgroundcolorStr;
 
 bool gReverseDirection = false;
 bool rgb_s_off = false;
+bool fadeIn = false;
 
 byte cooling = 50,
 sparking = 120,
@@ -193,6 +194,7 @@ brightness = 31;
 
 unsigned long counter20ms = 0,
 starttime[ARRAYSIZE],
+starttimerb,
 maxtime = 0;
 
 enum modetype {
@@ -477,10 +479,16 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
 
         else if (subCommand == F("rainbow")) {
           mode = Rainbow;
+          starttimerb = counter20ms;
+          fadeIn = true;
 
           rainbowspeed = (parseString(string, 3) == "")
           ? 1
           : parseString(string, 3).toInt();
+
+          fadetime = (parseString(string, 4) == "")
+          ? fadetime
+          : parseString(string, 4).toInt();
         }
 
         else if (subCommand == F("colorfade")) {
@@ -1073,6 +1081,12 @@ void faketv(void) {
 * Cycles a rainbow over the entire string of LEDs.
 */
 void rainbow(void) {
+  long zaehler = 20 * ( counter20ms - starttimerb );
+  float progress = (float) zaehler / (float) fadetime ;
+  if (fadeIn == true) {
+    Plugin_124_pixels->SetBrightness(progress * 255);
+    fadeIn = (progress == 1) ? false : true;
+  }
   for(int i=0; i< pixelCount; i++)
   {
     uint8_t r1 = (Wheel(((i * 256 / pixelCount) + counter20ms * rainbowspeed / 10) & 255) >> 16);
