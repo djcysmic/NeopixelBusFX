@@ -1075,9 +1075,9 @@ void faketv(void) {
 void rainbow(void) {
   for(int i=0; i< pixelCount; i++)
   {
-    uint8_t r1 = (Wheel(((i * 256 / pixelCount) + counter20ms * rainbowspeed) & 255) >> 16);
-    uint8_t g1 = (Wheel(((i * 256 / pixelCount) + counter20ms * rainbowspeed) & 255) >> 8);
-    uint8_t b1 = (Wheel(((i * 256 / pixelCount) + counter20ms * rainbowspeed) & 255));
+    uint8_t r1 = (Wheel(((i * 256 / pixelCount) + counter20ms * rainbowspeed / 10) & 255) >> 16);
+    uint8_t g1 = (Wheel(((i * 256 / pixelCount) + counter20ms * rainbowspeed / 10) & 255) >> 8);
+    uint8_t b1 = (Wheel(((i * 256 / pixelCount) + counter20ms * rainbowspeed / 10) & 255));
     Plugin_124_pixels->SetPixelColor(i, RgbColor(r1, g1, b1));
   }
   mode = (rainbowspeed == 0) ? On : Rainbow;
