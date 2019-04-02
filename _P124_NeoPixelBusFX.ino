@@ -478,12 +478,12 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
         }
 
         else if (subCommand == F("rainbow")) {
+          fadeIn = (mode == Off) ? true : false;
           mode = Rainbow;
           starttimerb = counter20ms;
-          fadeIn = true;
 
           rainbowspeed = (parseString(string, 3) == "")
-          ? 1
+          ? speed
           : parseString(string, 3).toInt();
 
           fadetime = (parseString(string, 4) == "")
