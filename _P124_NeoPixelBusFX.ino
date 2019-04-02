@@ -17,6 +17,7 @@ dimvalue 0-255
 nfx line startpixel endpixel color
 
 nfx one pixel color
+nfx hsvone pixel hue saturation brightness
 
 nfx all color [fadetime] [delay]
 nfx rgb color [fadetime] [delay]
@@ -477,6 +478,23 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
           maxtime = starttime[r_pixel] + (fadetime / 20);
         }
 
+        else if (subCommand == F("hsvone")) {
+          mode = On;
+          rgb = RgbColor(HsbColor(parseString(string, 4).toFloat()/360, parseString(string, 5).toFloat()/100, parseString(string, 6).toFloat()/100));
+
+          colorStr = "";
+          rgb.R < 16 ? colorStr = "0":"";
+          colorStr += formatToHex(rgb.R,"");
+          rgb.G < 16 ? colorStr += "0":"";
+          colorStr += formatToHex(rgb.G,"");
+          rgb.B < 16 ? colorStr += "0":"";
+          colorStr += formatToHex(rgb.B,"");
+
+          hex2rgb(colorStr);
+          uint16_t pixnum = parseString(string, 3).toInt() - 1;
+          Plugin_124_pixels->SetPixelColor(pixnum, rgb);
+        }
+
         else if (subCommand == F("rainbow")) {
           fadeIn = (mode == Off) ? true : false;
           mode = Rainbow;
@@ -798,11 +816,13 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
         && subCommand != F("kitt") && subCommand != F("comet")
         && subCommand != F("theatre") && subCommand != F("scan")
         && subCommand != F("dualscan") && subCommand != F("twinkle")
-        && subCommand != F("sparkle") && subCommand != F("fire") && subCommand != F("fireflicker")
+        && subCommand != F("sparkle") && subCommand != F("fire")
+        && subCommand != F("fireflicker") && subCommand != F("hsvone")
+        && subCommand != F("hsv") && subCommand != F("faketv")
         && subCommand != F("twinklefade") && subCommand != F("stop")
         && subCommand != F("wipe") && subCommand != F("dualwipe")
         && subCommand != F("colorfade") && subCommand != F("simpleclock")
-        && subCommand != F("statusrequest") && subCommand != F("faketv")) {
+        && subCommand != F("statusrequest") ) {
           log = F("NeoPixelBus: unknown subcommand: ");
           log += subCommand;
           addLog(LOG_LEVEL_INFO, log);
