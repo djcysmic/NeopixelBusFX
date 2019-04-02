@@ -13,7 +13,7 @@ o dimvalue 0-255, default:255<br>
 nfx line <i>startpixel endpixel color</i><br>
 
 nfx one <i>pixel color</i><br>
-nfx hsvone pixel hue saturation brightness<br>
+nfx hsvone pixel <i>hue saturation brightness</i><br>
 
 nfx all <i>color</i> [fadetime, default:1000] [delay +/-ms, default:20]<br>
 nfx rgb <i>color</i> [fadetime, default:1000] [delay +/-ms, default:20]<br>
