@@ -11,6 +11,7 @@ o dim stripe overall<br>
 o dimvalue 0-255, default:255<br>
 
 nfx line <i>startpixel endpixel color</i><br>
+nfx hsvline <i>startpixel endpixel hue saturation brightness</i><br>
 
 nfx one <i>pixel color</i><br>
 nfx hsvone pixel <i>hue saturation brightness</i><br>
