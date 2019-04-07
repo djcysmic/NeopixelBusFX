@@ -15,6 +15,7 @@ nfx dim [dimvalue]
 dimvalue 0-255
 
 nfx line startpixel endpixel color
+nfx hsvline startpixel endpixel hue saturation brightness
 
 nfx one pixel color
 nfx hsvone pixel hue saturation brightness
@@ -387,7 +388,7 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
           mode = On;
 
           hex2rgb(parseString(string, 5));
-// changed SMY
+
           for (int i = 0; i <= ( parseString(string, 4).toInt()-parseString(string, 3).toInt() + pixelCount) % pixelCount ; i++){
             Plugin_124_pixels->SetPixelColor((i + parseString(string, 3).toInt() - 1) % pixelCount, rgb);
           }
@@ -493,6 +494,26 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
           hex2rgb(colorStr);
           uint16_t pixnum = parseString(string, 3).toInt() - 1;
           Plugin_124_pixels->SetPixelColor(pixnum, rgb);
+        }
+
+        else if (subCommand == F("hsvline")) {
+          mode = On;
+
+          rgb = RgbColor(HsbColor(parseString(string, 5).toFloat()/360, parseString(string, 6).toFloat()/100, parseString(string, 7).toFloat()/100));
+
+          colorStr = "";
+          rgb.R < 16 ? colorStr = "0":"";
+          colorStr += formatToHex(rgb.R,"");
+          rgb.G < 16 ? colorStr += "0":"";
+          colorStr += formatToHex(rgb.G,"");
+          rgb.B < 16 ? colorStr += "0":"";
+          colorStr += formatToHex(rgb.B,"");
+
+          hex2rgb(colorStr);
+
+          for (int i = 0; i <= ( parseString(string, 4).toInt()-parseString(string, 3).toInt() + pixelCount) % pixelCount ; i++){
+            Plugin_124_pixels->SetPixelColor((i + parseString(string, 3).toInt() - 1) % pixelCount, rgb);
+          }
         }
 
         else if (subCommand == F("rainbow")) {
@@ -818,11 +839,11 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
         && subCommand != F("dualscan") && subCommand != F("twinkle")
         && subCommand != F("sparkle") && subCommand != F("fire")
         && subCommand != F("fireflicker") && subCommand != F("hsvone")
-        && subCommand != F("hsv") && subCommand != F("faketv")
+        && subCommand != F("hsv") && subCommand != F("hsvline")
         && subCommand != F("twinklefade") && subCommand != F("stop")
         && subCommand != F("wipe") && subCommand != F("dualwipe")
         && subCommand != F("colorfade") && subCommand != F("simpleclock")
-        && subCommand != F("statusrequest") ) {
+        && subCommand != F("faketv") && subCommand != F("statusrequest") ) {
           log = F("NeoPixelBus: unknown subcommand: ");
           log += subCommand;
           addLog(LOG_LEVEL_INFO, log);
