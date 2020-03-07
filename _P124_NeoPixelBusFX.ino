@@ -1578,9 +1578,9 @@ void fire_flicker() {
 
 void Plugin_124_simpleclock()
 {
-  byte Hours = hour()%12;
-  byte Minutes = minute();
-  byte Seconds = second();
+  byte Hours = node_time.hour()%12;
+  byte Minutes = node_time.minute();
+  byte Seconds = node_time.second();
   byte big_tick = 15;
   byte small_tick = 5;
 
