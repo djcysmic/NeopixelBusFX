@@ -1656,7 +1656,7 @@ void hex2rgb_pixel(String hexcolor) {
 // ---------------------------------------------------------------------------------
 // ------------------------------ JsonResponse -------------------------------------
 // ---------------------------------------------------------------------------------
-void NeoPixelSendStatus(byte eventSource) {
+void NeoPixelSendStatus(EventValueSource::Enum eventSource) {
   String log = String(F("NeoPixelBusFX: Set ")) + rgb.R
   + String(F("/")) + rgb.G + String(F("/")) + rgb.B;
   addLog(LOG_LEVEL_INFO, log);
