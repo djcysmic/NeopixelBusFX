@@ -858,6 +858,7 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
           json += F("\"\n");
           json += F("}\n");
           SendStatus(event->Source, json); // send http response to controller (JSON format)
+          printToWeb=false;
         }
         NeoPixelSendStatus(event->Source);
       } // command neopixel
@@ -1693,5 +1694,6 @@ void NeoPixelSendStatus(EventValueSource::Enum eventSource) {
   json += pixelCount;
   json += F("\"\n}\n");
   SendStatus(eventSource, json); // send http response to controller (JSON format)
+  printToWeb=false;
 }
 #endif // USES_P124
