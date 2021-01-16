@@ -857,10 +857,11 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
           json += subCommand;
           json += F("\"\n");
           json += F("}\n");
-          SendStatus(event->Source, json); // send http response to controller (JSON format)
+//          event->Source=EventValueSource::Enum::VALUE_SOURCE_HTTP;
+          SendStatus(event, json); // send http response to controller (JSON format)
           printToWeb=false;
         }
-        NeoPixelSendStatus(event->Source);
+        NeoPixelSendStatus(event);
       } // command neopixel
 
       if ( speed == 0 ) mode = On; // speed = 0 = stop mode
@@ -955,7 +956,7 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
         log = F("NeoPixelBus: Mode Change: ");
         log += modeName[mode];
         addLog(LOG_LEVEL_INFO, log);
-        NeoPixelSendStatus(event->Source);
+        NeoPixelSendStatus(event);
       }
       success = true;
       break;
@@ -1022,7 +1023,7 @@ for(uint16_t i = 0; i <= difference; i++)
 
 
 void wipe(void) {
-  if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0) {
+  if (counter20ms % (unsigned long)( SPEED_MAX / abs(speed) ) == 0) {
     if (speed > 0) {
       Plugin_124_pixels->SetPixelColor(_counter_mode_step, rrggbb);
       if ( _counter_mode_step > 0 ) Plugin_124_pixels->SetPixelColor( _counter_mode_step - 1, rgb);
@@ -1036,7 +1037,7 @@ void wipe(void) {
 }
 
 void dualwipe(void) {
-  if (counter20ms % (SPEED_MAX / abs(speed)) == 0) {
+  if (counter20ms % (unsigned long)(SPEED_MAX / abs(speed)) == 0) {
     if (speed > 0) {
       int i = _counter_mode_step - pixelCount;
       i = abs(i);
@@ -1162,7 +1163,7 @@ uint32_t Wheel(uint8_t pos) {
 // Larson Scanner K.I.T.T.
 void kitt(void) {
 
-  if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0)
+  if (counter20ms % (unsigned long)( SPEED_MAX / abs(speed) ) == 0)
   {
     for(uint16_t i=0; i < pixelCount; i++) {
 
@@ -1206,7 +1207,7 @@ void kitt(void) {
 //Firing comets from one end.
 void comet(void) {
 
-  if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0)
+  if (counter20ms % (unsigned long)( SPEED_MAX / abs(speed) ) == 0)
   {
     for(uint16_t i=0; i < pixelCount; i++) {
 
@@ -1273,7 +1274,7 @@ void comet(void) {
 //Theatre lights
 void theatre(void) {
 
-  if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
+  if (counter20ms % (unsigned long)( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
   {
     if (speed > 0) {
       Plugin_124_pixels->RotateLeft(1,0,(pixelCount/count)*count-1);
@@ -1288,7 +1289,7 @@ void theatre(void) {
 * Runs a single pixel back and forth.
 */
 void scan(void) {
-  if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
+  if (counter20ms % (unsigned long)( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
   {
     if(_counter_mode_step > uint16_t((pixelCount*2) - 2)) {
       _counter_mode_step = 0;
@@ -1311,7 +1312,7 @@ void scan(void) {
 */
 void dualscan(void) {
 
-  if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0) {
+  if (counter20ms % (unsigned long)( SPEED_MAX / abs(speed) ) == 0 && speed != 0) {
     if(_counter_mode_step > uint16_t((pixelCount*2) - 2)) {
       _counter_mode_step = 0;
     }
@@ -1336,7 +1337,7 @@ void dualscan(void) {
 */
 void twinkle(void) {
 
-  if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
+  if (counter20ms % (unsigned long)( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
   {
     if(_counter_mode_step == 0) {
       //Plugin_124_pixels->ClearTo(rrggbb);
@@ -1358,7 +1359,7 @@ void twinkle(void) {
 */
 void twinklefade(void) {
 
-  if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
+  if (counter20ms % (unsigned long)( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
   {
     for(uint16_t i=0; i < pixelCount; i++) {
 
@@ -1397,7 +1398,7 @@ void twinklefade(void) {
 */
 void sparkle(void) {
 
-  if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
+  if (counter20ms % (unsigned long)( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
   {
     //Plugin_124_pixels->ClearTo(rrggbb);
     for (int i = 0; i < pixelCount; i++) Plugin_124_pixels->SetPixelColor(i,rrggbb);
@@ -1558,7 +1559,7 @@ void Fire2012(void) {
  * Fire flicker function
  */
 void fire_flicker() {
-  if (counter20ms % ( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
+  if (counter20ms % (unsigned long)( SPEED_MAX / abs(speed) ) == 0 && speed != 0)
   {
     byte w = 0; //(SEGMENT.colors[0] >> 24) & 0xFF;
     byte r = 255; //(SEGMENT.colors[0] >> 16) & 0xFF;
@@ -1657,7 +1658,7 @@ void hex2rgb_pixel(String hexcolor) {
 // ---------------------------------------------------------------------------------
 // ------------------------------ JsonResponse -------------------------------------
 // ---------------------------------------------------------------------------------
-void NeoPixelSendStatus(EventValueSource::Enum eventSource) {
+void NeoPixelSendStatus(struct EventStruct *eventSource) {
   String log = String(F("NeoPixelBusFX: Set ")) + rgb.R
   + String(F("/")) + rgb.G + String(F("/")) + rgb.B;
   addLog(LOG_LEVEL_INFO, log);
