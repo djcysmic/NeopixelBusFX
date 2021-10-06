@@ -451,11 +451,11 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
 
           colorStr = "";
           rgb.R < 16 ? colorStr = "0":"";
-          colorStr += formatToHex(rgb.R,"");
+          colorStr += formatToHex(rgb.R,{});
           rgb.G < 16 ? colorStr += "0":"";
-          colorStr += formatToHex(rgb.G,"");
+          colorStr += formatToHex(rgb.G,{});
           rgb.B < 16 ? colorStr += "0":"";
-          colorStr += formatToHex(rgb.B,"");
+          colorStr += formatToHex(rgb.B,{});
 
           hex2rgb_pixel(colorStr);
 
@@ -485,11 +485,11 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
 
           colorStr = "";
           rgb.R < 16 ? colorStr = "0":"";
-          colorStr += formatToHex(rgb.R,"");
+          colorStr += formatToHex(rgb.R,{});
           rgb.G < 16 ? colorStr += "0":"";
-          colorStr += formatToHex(rgb.G,"");
+          colorStr += formatToHex(rgb.G,{});
           rgb.B < 16 ? colorStr += "0":"";
-          colorStr += formatToHex(rgb.B,"");
+          colorStr += formatToHex(rgb.B,{});
 
           hex2rgb(colorStr);
           uint16_t pixnum = parseString(string, 3).toInt() - 1;
@@ -503,11 +503,11 @@ boolean Plugin_124(byte function, struct EventStruct *event, String& string)
 
           colorStr = "";
           rgb.R < 16 ? colorStr = "0":"";
-          colorStr += formatToHex(rgb.R,"");
+          colorStr += formatToHex(rgb.R,{});
           rgb.G < 16 ? colorStr += "0":"";
-          colorStr += formatToHex(rgb.G,"");
+          colorStr += formatToHex(rgb.G,{});
           rgb.B < 16 ? colorStr += "0":"";
-          colorStr += formatToHex(rgb.B,"");
+          colorStr += formatToHex(rgb.B,{});
 
           hex2rgb(colorStr);
 
